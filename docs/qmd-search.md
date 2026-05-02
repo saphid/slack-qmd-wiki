@@ -58,6 +58,22 @@ curl -fsS 'http://127.0.0.1:8765/api/search?q=OAuth&mode=lex&collection=raw,wiki
 
 The web server does not shell-interpolate user input; it calls `qmd` with argument arrays and only allows the known collection aliases above. It should remain localhost-only unless there is an explicit reason to expose it.
 
+
+## Telemetry dashboard
+
+The web UI includes a telemetry section above search results. It calls
+`/api/telemetry` and shows:
+
+- full Slack download conversation status counts
+- chunk JSON/history/reply page counts and sizes
+- materialized QMD markdown counts and QMD collection file counts
+- wiki/raw/inbox markdown counts
+- realtime updater last-run stats, active thread count, and recent writes
+- a short downloader log tail for operational context
+
+Telemetry is local-only and summarizes filesystem/state metadata. It does not
+serve Slack message bodies except for the existing search/get endpoints.
+
 ## Running services
 
 - Web UI tmux session: `llm-wiki-qmd-search-web`

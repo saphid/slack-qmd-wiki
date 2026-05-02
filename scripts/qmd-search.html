@@ -80,6 +80,21 @@
     .facet-active-chip { border-color: Highlight; color: HighlightText; background: Highlight; }
     .result-facets { padding: .65rem .75rem; }
     .facet-count { opacity: .75; margin-left: .25rem; }
+
+    .telemetry { border: 1px solid var(--border); border-radius: 14px; padding: .85rem; margin-bottom: .9rem; background: var(--panel); }
+    .telemetry h2 { margin: 0; font-size: 1.05rem; }
+    .telemetry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin-top: .75rem; }
+    .stat-card { border: 1px solid var(--border); border-radius: 12px; padding: .65rem; background: Canvas; }
+    .stat-label { color: var(--muted); font-size: .8rem; }
+    .stat-value { font-size: 1.35rem; font-weight: 850; margin-top: .15rem; }
+    .stat-sub { color: var(--muted); font-size: .78rem; margin-top: .15rem; }
+    .bar-list { display: grid; gap: .4rem; margin-top: .6rem; }
+    .bar-row { display: grid; grid-template-columns: 9rem 1fr 4.5rem; gap: .5rem; align-items: center; font-size: .84rem; }
+    .bar-track { height: .65rem; border-radius: 999px; background: color-mix(in srgb, CanvasText 10%, transparent); overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, Highlight, color-mix(in srgb, Highlight 55%, #22c55e)); }
+    .telemetry-panels { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin-top: .8rem; }
+    .mini-log { max-height: 12rem; font-size: .78rem; }
+    @media (max-width: 1100px) { .telemetry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .telemetry-panels { grid-template-columns: 1fr; } }
     dialog { width: min(1100px, 94vw); max-height: 88vh; border-radius: 12px; border: 1px solid var(--border); }
     dialog pre { max-height: 68vh; }
     @media (max-width: 850px) { main.wrap { grid-template-columns: 1fr; } aside { position: static; } header { position: static; } }
@@ -127,6 +142,10 @@
     </aside>
 
     <section>
+      <section id="telemetry" class="telemetry">
+        <div class="row" style="justify-content:space-between"><h2>Telemetry</h2><button type="button" id="refreshTelemetry">Refresh telemetry</button></div>
+        <div id="telemetryBody" class="hint">Loading Slack/QMD/wiki stats…</div>
+      </section>
       <div id="status" class="status"></div>
       <div id="resultFacets" class="result-facets" hidden></div>
       <div id="results"></div>
@@ -544,6 +563,66 @@ resultsEl.addEventListener('click', async (event) => {
     catch (error) { docBody.textContent = `Error: ${error.message}`; }
   }
 });
+
+function fmtInt(n) { return Number(n || 0).toLocaleString(); }
+function fmtBytes(bytes) {
+  const n = Number(bytes || 0);
+  if (!n) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = n; let i = 0;
+  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
+  return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+}
+function statCard(label, value, sub = '') {
+  return `<div class="stat-card"><div class="stat-label">${escapeHtml(label)}</div><div class="stat-value">${escapeHtml(value)}</div>${sub ? `<div class="stat-sub">${escapeHtml(sub)}</div>` : ''}</div>`;
+}
+function bars(counts) {
+  const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(1, ...entries.map(([, v]) => Number(v || 0)));
+  if (!entries.length) return '<div class="hint">No status data yet.</div>';
+  return `<div class="bar-list">${entries.map(([key, value]) => `<div class="bar-row"><span>${escapeHtml(key)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, (Number(value || 0) / max) * 100)}%"></div></div><span>${fmtInt(value)}</span></div>`).join('')}</div>`;
+}
+function recentRealtimeSparkline(summaries) {
+  const values = (summaries || []).map((s) => Number(s.messages_written || 0));
+  const max = Math.max(1, ...values);
+  if (!values.length) return '<div class="hint">No realtime summaries yet.</div>';
+  return `<div class="bar-list">${values.map((value, i) => `<div class="bar-row"><span>run ${i + 1}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, (value / max) * 100)}%"></div></div><span>${fmtInt(value)} msg</span></div>`).join('')}</div>`;
+}
+function renderTelemetry(data) {
+  const artifacts = data.artifacts || {};
+  const full = data.fullDownload || {};
+  const realtime = data.realtime || {};
+  const qmdCollections = data.qmd?.collections || [];
+  const activeText = (full.active || []).map((a) => `${a.status}: ${a.name}`).join('\n') || 'None';
+  $('#telemetryBody').innerHTML = `
+    <div class="hint">Generated ${escapeHtml(data.generatedAt || '')}; Slack run <code>${escapeHtml(data.slackRunId || '')}</code></div>
+    <div class="telemetry-grid">
+      ${statCard('Conversations tracked', fmtInt(full.trackedConversations), `${fmtInt((full.statusCounts || {}).complete)} complete`)}
+      ${statCard('Slack chunk JSON', fmtInt(artifacts.chunkJson?.files), fmtBytes(artifacts.chunkJson?.bytes))}
+      ${statCard('QMD chunk markdown', fmtInt(artifacts.qmdMarkdown?.files), fmtBytes(artifacts.qmdMarkdown?.bytes))}
+      ${statCard('Wiki pages', fmtInt(artifacts.wikiMarkdown?.files), fmtBytes(artifacts.wikiMarkdown?.bytes))}
+      ${statCard('Raw Slack markdown', fmtInt(artifacts.rawMarkdown?.files), fmtBytes(artifacts.rawMarkdown?.bytes))}
+      ${statCard('History / replies', `${fmtInt(artifacts.historyJson?.files)} / ${fmtInt(artifacts.replyJson?.files)}`, 'API page files')}
+      ${statCard('Realtime channels', fmtInt(realtime.trackedChannels), `${fmtInt(realtime.activeThreads)} active threads`)}
+      ${statCard('Last realtime run', realtime.lastRun?.run_id || '—', `${fmtInt(realtime.lastRun?.messages_written)} new messages`)}
+    </div>
+    <div class="telemetry-panels">
+      <div class="stat-card"><h3>Full download status</h3>${bars(full.statusCounts)}<div class="stat-sub">Active: ${escapeHtml(activeText)}</div></div>
+      <div class="stat-card"><h3>Recent realtime writes</h3>${recentRealtimeSparkline(realtime.summaries)}<div class="stat-sub">Round-robin offset: ${fmtInt(realtime.roundRobinOffset)}</div></div>
+      <div class="stat-card"><h3>QMD collections</h3>${qmdCollections.length ? bars(Object.fromEntries(qmdCollections.map((c) => [c.name, c.files || 0]))) : '<div class="hint">QMD collection list unavailable.</div>'}</div>
+      <div class="stat-card"><h3>Recent downloader log</h3><pre class="mini-log">${escapeHtml((full.logTail || []).slice(-10).join('\n'))}</pre></div>
+    </div>`;
+}
+async function loadTelemetry() {
+  try {
+    const response = await fetch('/api/telemetry');
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'telemetry failed');
+    renderTelemetry(data);
+  } catch (error) {
+    $('#telemetryBody').innerHTML = `<span class="hint">Telemetry unavailable: ${escapeHtml(error.message)}</span>`;
+  }
+}
 async function loadFacets() {
   try {
     const response = await fetch('/api/facets');
@@ -580,6 +659,8 @@ $('#decoratorChips').addEventListener('click', (event) => {
   input.value = input.value.trim() ? `${input.value.trim()} ${add}` : add;
   input.focus();
 });
+$('#refreshTelemetry').addEventListener('click', loadTelemetry);
+loadTelemetry();
 loadFacets();
 </script>
 </body>

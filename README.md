@@ -10,6 +10,7 @@ This repository contains **code, docs, and examples only**. It intentionally doe
 - Near-real-time incremental polling every five minutes via a systemd user timer.
 - QMD materialization/indexing for lexical search over Slack chunks and wiki pages.
 - Optional localhost web search UI over QMD results.
+- Telemetry dashboard for Slack download progress, QMD index counts, realtime updates, and wiki size.
 - A persistent wiki workflow (`AGENTS.md`) that keeps source evidence separate from synthesized knowledge.
 
 ## Data and secret safety

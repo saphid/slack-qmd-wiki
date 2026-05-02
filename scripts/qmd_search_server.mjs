@@ -2,7 +2,7 @@
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -14,6 +14,7 @@ const SLACK_RUN_ID = process.env.SLACK_RUN_ID || process.env.LLM_WIKI_SLACK_RUN_
 const MAX_QUERY_CHARS = Number(process.env.LLM_WIKI_SEARCH_MAX_QUERY_CHARS || 1000);
 const MAX_RESULTS = Number(process.env.LLM_WIKI_SEARCH_MAX_RESULTS || 500);
 const FACET_CACHE_MS = Number(process.env.LLM_WIKI_FACET_CACHE_MS || 300000);
+const TELEMETRY_CACHE_MS = Number(process.env.LLM_WIKI_TELEMETRY_CACHE_MS || 30000);
 function detectSlackRunId() {
   const statePath = path.join(ROOT, '.state/slack-chunk-download-state.json');
   try {
@@ -45,6 +46,7 @@ const CORPUS_TO_COLLECTION_PARAM = {
 };
 
 let facetCache = {expires: 0, data: null};
+let telemetryCache = {expires: 0, data: null};
 
 function json(res, status, body) {
   res.writeHead(status, {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store'});
@@ -320,6 +322,131 @@ async function buildFacets() {
   return data;
 }
 
+
+function countBy(items, keyFn) {
+  const counts = {};
+  for (const item of items || []) {
+    const key = keyFn(item) || 'unknown';
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  return counts;
+}
+function statusCountsFromState(state) {
+  return countBy(Object.values(state?.conversations || {}), (v) => v?.status || 'unknown');
+}
+function newestIso(ms) { return ms ? new Date(ms).toISOString() : ''; }
+async function treeStats(rootDir, predicate = () => true) {
+  const out = {files: 0, bytes: 0, newestMtimeMs: 0};
+  async function walk(dir) {
+    let entries;
+    try { entries = await readdir(dir, {withFileTypes: true}); } catch { return; }
+    await Promise.all(entries.map(async (ent) => {
+      const p = path.join(dir, ent.name);
+      if (ent.isDirectory()) return walk(p);
+      if (!ent.isFile() || !predicate(p)) return;
+      try {
+        const st = await stat(p);
+        out.files += 1;
+        out.bytes += st.size;
+        out.newestMtimeMs = Math.max(out.newestMtimeMs, st.mtimeMs);
+      } catch {}
+    }));
+  }
+  await walk(rootDir);
+  return {...out, newestMtime: newestIso(out.newestMtimeMs)};
+}
+async function readLogTail(file, lines = 20) {
+  try {
+    const body = await readFile(file, 'utf8');
+    return body.split(/\r?\n/).filter(Boolean).slice(-lines);
+  } catch { return []; }
+}
+function parseRealtimeLogSummaries(lines) {
+  return lines.map((line) => {
+    const m = line.match(/summary\s+(\{.*\})$/);
+    if (!m) return null;
+    try { return JSON.parse(m[1]); } catch { return null; }
+  }).filter(Boolean);
+}
+async function qmdCollectionsTelemetry() {
+  const result = await runQmd(['collection', 'list'], 10000);
+  if (result.code !== 0) return {ok: false, error: result.stderr.slice(-1000), collections: []};
+  const collections = [];
+  let current = null;
+  for (const line of result.stdout.split(/\r?\n/)) {
+    const header = line.match(/^([^\s].*?)\s+\(qmd:\/\/([^)]+)\)/);
+    if (header) {
+      current = {name: header[1].trim(), uri: `qmd://${header[2]}`, files: null, updated: ''};
+      collections.push(current);
+      continue;
+    }
+    if (!current) continue;
+    const files = line.match(/^\s*Files:\s*(\d+)/);
+    if (files) current.files = Number(files[1]);
+    const updated = line.match(/^\s*Updated:\s*(.+)$/);
+    if (updated) current.updated = updated[1].trim();
+  }
+  return {ok: true, collections, raw: result.stdout};
+}
+async function buildTelemetry() {
+  const now = Date.now();
+  if (telemetryCache.data && telemetryCache.expires > now) return telemetryCache.data;
+  const fullState = await readJsonIfExists(path.join(ROOT, '.state/slack-chunk-download-state.json'), {});
+  const realtimeState = await readJsonIfExists(path.join(ROOT, '.state/slack-realtime-sync-state.json'), {});
+  const realtimeLast = await readJsonIfExists(path.join(ROOT, '.state/slack-realtime-last-run.json'), null);
+  const runId = fullState.run_id || SLACK_RUN_ID;
+  const chunkRoot = path.join(ROOT, 'chunks/slack', runId);
+  const [chunkJson, historyJson, replyJson, qmdMd, rawMd, wikiMd, inboxMd, qmd, realtimeTail, fullTail] = await Promise.all([
+    treeStats(chunkRoot, (p) => p.endsWith('.json')),
+    treeStats(chunkRoot, (p) => p.endsWith('.json') && p.includes(`${path.sep}history${path.sep}`)),
+    treeStats(chunkRoot, (p) => p.endsWith('.json') && p.includes(`${path.sep}replies${path.sep}`)),
+    treeStats(path.join(ROOT, 'qmd/slack-api-chunks'), (p) => p.endsWith('.md')),
+    treeStats(path.join(ROOT, 'raw/slack'), (p) => p.endsWith('.md')),
+    treeStats(path.join(ROOT, 'wiki'), (p) => p.endsWith('.md')),
+    treeStats(path.join(ROOT, 'inbox'), (p) => p.endsWith('.md')),
+    qmdCollectionsTelemetry(),
+    readLogTail(path.join(ROOT, '.state/realtime/slack-realtime.latest.log'), 80),
+    readLogTail(path.join(ROOT, '.state/slack-download-chunks.latest.log'), 30),
+  ]);
+  const fullStatusCounts = statusCountsFromState(fullState);
+  const realtimeSummaries = parseRealtimeLogSummaries(realtimeTail).slice(-8);
+  const data = {
+    generatedAt: new Date().toISOString(),
+    root: ROOT,
+    slackRunId: runId,
+    fullDownload: {
+      startedAt: fullState.started_at || '',
+      windowStart: fullState.window_start || '',
+      windowEnd: fullState.window_end || '',
+      trackedConversations: Object.keys(fullState.conversations || {}).length,
+      statusCounts: fullStatusCounts,
+      errors: fullState.errors || {},
+      active: Object.entries(fullState.conversations || {}).filter(([, v]) => !['complete', 'error', 'skipped_existing_raw'].includes(v?.status || '')).map(([id, v]) => ({id, name: v.name || id, status: v.status || 'unknown'})).slice(0, 10),
+      logTail: fullTail,
+    },
+    realtime: {
+      lastRun: realtimeLast,
+      roundRobinOffset: realtimeState.round_robin_offset || 0,
+      trackedChannels: Object.keys(realtimeState.channels || {}).length,
+      activeThreads: Object.keys(realtimeState.active_threads || {}).length,
+      summaries: realtimeSummaries,
+      logTail: realtimeTail.slice(-20),
+    },
+    artifacts: {
+      chunkJson,
+      historyJson,
+      replyJson,
+      qmdMarkdown: qmdMd,
+      rawMarkdown: rawMd,
+      wikiMarkdown: wikiMd,
+      inboxMarkdown: inboxMd,
+    },
+    qmd,
+  };
+  telemetryCache = {expires: now + TELEMETRY_CACHE_MS, data};
+  return data;
+}
+
 async function handleSearch(req, res, url) {
   let built;
   try { built = buildSearchArgs(url.searchParams); }
@@ -355,6 +482,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/' || url.pathname === '/index.html') return text(res, 200, await readFile(htmlPath, 'utf8'), 'text/html; charset=utf-8');
     if (url.pathname === '/health') return json(res, 200, {ok: true, service: 'llm-wiki-qmd-search', qmd: QMD, maxResults: MAX_RESULTS});
     if (url.pathname === '/api/facets') return json(res, 200, await buildFacets());
+    if (url.pathname === '/api/telemetry') return json(res, 200, await buildTelemetry());
     if (url.pathname === '/api/search') return await handleSearch(req, res, url);
     if (url.pathname === '/api/get') return await handleGet(req, res, url);
     return json(res, 404, {error: 'not found'});

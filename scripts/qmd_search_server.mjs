@@ -136,17 +136,37 @@ function parseMeta(result) {
 }
 function enrich(results) { return results.map((r) => ({...r, meta: parseMeta(r)})); }
 
+
+function isDmLikeResult(result) {
+  const channel = String(result.meta?.channel || '').trim();
+  const file = String(result.file || result.path || '');
+  return /^D[A-Z0-9]+$/i.test(channel)
+    || /^mpdm[-_]/i.test(channel)
+    || /^im[-_]/i.test(channel)
+    || /(^|\/)D[A-Z0-9]+(\/|\.|$)/i.test(file)
+    || /(^|\/)mpdm[-_]/i.test(file)
+    || /(^|\/)im[-_]/i.test(file);
+}
+function dmScope(params) {
+  return String(params.get('includeDms') || 'Exclude DMs').trim().toLowerCase();
+}
+
 function applyFilters(results, params) {
   const channel = normalizeChannel(params.get('channel') || '').toLowerCase();
   const dateFrom = String(params.get('dateFrom') || '').trim();
   const dateTo = String(params.get('dateTo') || '').trim();
   const within = String(params.get('within') || '').trim().toLowerCase();
+  const dm = dmScope(params);
+  const user = stripQuotes(params.get('user') || '').toLowerCase();
   return results.filter((r) => {
     const date = r.meta?.date || '';
     if (channel && !String(r.meta?.channel || '').toLowerCase().includes(channel)) return false;
     if (dateFrom && (!date || date < dateFrom)) return false;
     if (dateTo && (!date || date > dateTo)) return false;
     const haystack = `${r.title || ''}\n${r.file || ''}\n${r.snippet || ''}\n${r.context || ''}\n${r.meta?.channel || ''}`.toLowerCase();
+    const isDm = isDmLikeResult(r);
+    if ((dm === 'exclude dms' || dm === 'select users…' || dm === 'select users...') && isDm) return false;
+    if (dm === 'only selected users' && (!isDm || (user && !haystack.includes(user)))) return false;
     if (within && !haystack.includes(within)) return false;
     return true;
   });
@@ -236,7 +256,7 @@ function buildSearchArgs(originalParams) {
   const mode = String(effective.get('mode') || 'lex');
   const requestedLimit = Math.min(Math.max(Number(effective.get('n') || 25), 1), MAX_RESULTS);
   const collections = collectionsFrom(effective.get('collection'));
-  const hasPostFilter = ['channel', 'user', 'dateFrom', 'dateTo', 'within'].some((key) => String(effective.get(key) || '').trim());
+  const hasPostFilter = ['channel', 'user', 'dateFrom', 'dateTo', 'within', 'includeDms'].some((key) => String(effective.get(key) || '').trim());
   const fetchLimit = hasPostFilter ? Math.min(MAX_RESULTS, Math.max(requestedLimit * 5, 100)) : requestedLimit;
 
   const user = stripQuotes(effective.get('user') || '');

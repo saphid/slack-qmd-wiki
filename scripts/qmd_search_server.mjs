@@ -2,7 +2,7 @@
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { access, readFile, readdir, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -482,6 +482,82 @@ async function buildTelemetry() {
   return data;
 }
 
+
+function qmdUriForLocalMarkdown(file) {
+  const rel = path.relative(ROOT, file).split(path.sep).join('/');
+  if (rel.startsWith('wiki/')) return `qmd://llm-wiki/${rel.slice('wiki/'.length)}`;
+  if (rel.startsWith('qmd/slack-api-chunks/')) return `qmd://slack-api-chunks/${rel.slice('qmd/slack-api-chunks/'.length)}`;
+  if (rel.startsWith('raw/slack/')) return `qmd://slack-raw/${rel.slice('raw/slack/'.length)}`;
+  return `qmd://local/${rel}`;
+}
+async function listMarkdownRoots() {
+  const roots = [path.join(ROOT, 'wiki'), path.join(ROOT, 'qmd/slack-api-chunks'), path.join(ROOT, 'raw/slack'), path.join(ROOT, 'docs')];
+  const existing = [];
+  for (const root of roots) {
+    try { await access(root); existing.push(root); } catch {}
+  }
+  return existing;
+}
+async function listMarkdownFiles(dir, out = []) {
+  let entries = [];
+  try { entries = await readdir(dir, {withFileTypes: true}); } catch { return out; }
+  for (const ent of entries) {
+    const p = path.join(dir, ent.name);
+    if (ent.isDirectory()) await listMarkdownFiles(p, out);
+    else if (ent.isFile() && ent.name.endsWith('.md')) out.push(p);
+  }
+  return out;
+}
+function plainTerms(query) {
+  return String(query || '')
+    .replace(/(^|\s)(from|user|in|channel|after|before|on|corpus|mode|sort):("[^"]+"|'[^']+'|[^\s]+)/gi, ' ')
+    .replace(/^(lex|vec|hyde|intent|expand):/gmi, ' ')
+    .split(/\s+/)
+    .map((s) => s.trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').toLowerCase())
+    .filter((s) => s.length >= 2);
+}
+function titleFromMarkdown(file, body) {
+  const heading = body.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  if (heading) return heading;
+  return path.basename(file, '.md').replace(/[-_]/g, ' ');
+}
+function snippetForTerms(body, terms) {
+  const lines = body.split(/\r?\n/).filter((line) => line.trim());
+  const idx = lines.findIndex((line) => terms.some((term) => line.toLowerCase().includes(term)));
+  const start = Math.max(0, idx < 0 ? 0 : idx - 1);
+  return lines.slice(start, start + 4).join('\n').slice(0, 1200);
+}
+async function localMarkdownSearch(built, startedAt) {
+  const terms = plainTerms(built.cleanQuery || built.effective.get('q') || '');
+  const roots = await listMarkdownRoots();
+  const files = [];
+  for (const root of roots) await listMarkdownFiles(root, files);
+  const results = [];
+  for (const file of files) {
+    let body = '';
+    try { body = await readFile(file, 'utf8'); } catch { continue; }
+    const haystack = `${path.relative(ROOT, file)}\n${body}`.toLowerCase();
+    const hits = terms.length ? terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0) : 1;
+    if (!hits && terms.length) continue;
+    const uri = qmdUriForLocalMarkdown(file);
+    results.push({file: uri, title: titleFromMarkdown(file, body), score: terms.length ? hits / terms.length : 0.1, snippet: snippetForTerms(body, terms), backend: 'local-markdown-fallback'});
+  }
+  const enriched = enrich(results);
+  const filtered = applyFilters(enriched, built.effective);
+  const sorted = sortResults(filtered, String(built.effective.get('sort') || 'relevance'));
+  const weighted = applySourceWeights(sorted, built.effective);
+  const limited = weighted.slice(0, built.requestedLimit);
+  return {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, backend: 'local-markdown-fallback', warning: 'qmd binary was unavailable; searched local markdown files instead.', maxResults: MAX_RESULTS, fetched: results.length, matched: filtered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited};
+}
+function localPathFromQmdUri(target) {
+  const value = String(target || '');
+  if (value.startsWith('qmd://llm-wiki/')) return path.join(ROOT, 'wiki', value.slice('qmd://llm-wiki/'.length));
+  if (value.startsWith('qmd://slack-api-chunks/')) return path.join(ROOT, 'qmd/slack-api-chunks', value.slice('qmd://slack-api-chunks/'.length));
+  if (value.startsWith('qmd://slack-raw/')) return path.join(ROOT, 'raw/slack', value.slice('qmd://slack-raw/'.length));
+  if (value.startsWith('qmd://local/')) return path.join(ROOT, value.slice('qmd://local/'.length));
+  return '';
+}
+
 async function handleSearch(req, res, url) {
   const startedAt = Date.now();
   let built;
@@ -489,7 +565,10 @@ async function handleSearch(req, res, url) {
   catch (error) { return json(res, 400, {error: error.message}); }
   const timeout = built.args[0] === 'query' ? 180000 : 60000;
   const result = await runQmd(built.args, timeout);
-  if (result.code !== 0) return json(res, 500, {error: 'qmd failed', code: result.code, signal: result.signal, stderr: result.stderr.slice(-4000)});
+  if (result.code !== 0) {
+    if (result.code === 127 || /ENOENT|not found/i.test(result.stderr)) return json(res, 200, await localMarkdownSearch(built, startedAt));
+    return json(res, 500, {error: 'qmd failed', code: result.code, signal: result.signal, stderr: result.stderr.slice(-4000)});
+  }
   try {
     const parsed = JSON.parse(result.stdout || '[]');
     const enriched = enrich(parsed);
@@ -508,7 +587,14 @@ async function handleGet(req, res, url) {
   const lines = Math.min(Math.max(Number(url.searchParams.get('lines') || 160), 1), 1000);
   if (!target.startsWith('qmd://') && !target.startsWith('#')) return json(res, 400, {error: 'target must be a qmd:// path or #docid'});
   const result = await runQmd(['get', target, '-l', String(lines)], 60000);
-  if (result.code !== 0) return json(res, 500, {error: 'qmd get failed', stderr: result.stderr.slice(-4000)});
+  if (result.code !== 0) {
+    const local = localPathFromQmdUri(target);
+    if (local) {
+      try { return text(res, 200, (await readFile(local, 'utf8')).split(/\r?\n/).slice(0, lines).join('\n')); }
+      catch {}
+    }
+    return json(res, 500, {error: 'qmd get failed', stderr: result.stderr.slice(-4000)});
+  }
   return text(res, 200, result.stdout);
 }
 
@@ -517,6 +603,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host || `${HOST}:${PORT}`}`);
   try {
     if (url.pathname === '/' || url.pathname === '/index.html') return text(res, 200, await readFile(htmlPath, 'utf8'), 'text/html; charset=utf-8');
+    if (url.pathname === '/favicon.ico') { res.writeHead(204, {'cache-control': 'public, max-age=86400'}); return res.end(); }
     if (url.pathname === '/health') return json(res, 200, {ok: true, service: 'llm-wiki-qmd-search', qmd: QMD, maxResults: MAX_RESULTS});
     if (url.pathname === '/api/facets') return json(res, 200, await buildFacets());
     if (url.pathname === '/api/telemetry') return json(res, 200, await buildTelemetry());

@@ -1,0 +1,8 @@
+# Hot Slack channels checked every realtime update.
+# Copy to config/slack_realtime_channels.txt for local use. The real file is
+# gitignored because channel choices can reveal private workspace context.
+# The updater also round-robins across every visible conversation, so this file
+# is only for channels that should be closer to five-minute freshness.
+# engineering-help
+# build-alerts
+# release-alerts

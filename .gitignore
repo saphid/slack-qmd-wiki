@@ -1,0 +1,24 @@
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+.venv/
+
+# Python / Node build products
+__pycache__/
+*.pyc
+node_modules/
+
+# Local runtime state and generated Slack data. Do not publish Slack exports.
+.state/
+raw/slack/
+chunks/
+qmd/
+inbox/
+
+# Local sync filters can contain private channel names. Commit examples only.
+config/slack_channels.txt
+config/slack_realtime_channels.txt
+
+# OS/editor noise
+.DS_Store

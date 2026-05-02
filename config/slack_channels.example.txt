@@ -1,0 +1,9 @@
+# Optional channel allow/deny list.
+# Copy to config/slack_channels.txt for local use. The real file is gitignored
+# because channel choices can reveal private workspace context.
+# Leave empty to sync every conversation returned by the token.
+# Lines starting with ! are excluded. Other non-comment lines are included.
+# Match by channel id or normalized channel name, e.g.
+# C1234567890
+# eng-platform
+# !random

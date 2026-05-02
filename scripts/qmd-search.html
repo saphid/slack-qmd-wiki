@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Slack QMD Wiki Search</title>
+  <style>
+    :root { color-scheme: light dark; --border: color-mix(in srgb, CanvasText 18%, transparent); --muted: color-mix(in srgb, CanvasText 62%, transparent); --panel: color-mix(in srgb, CanvasText 5%, transparent); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; line-height: 1.45; }
+    header { position: sticky; top: 0; z-index: 2; backdrop-filter: blur(12px); background: color-mix(in srgb, Canvas 88%, transparent); border-bottom: 1px solid var(--border); }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 1rem; }
+    h1 { margin: 0 0 .2rem; font-size: 1.35rem; }
+    .hint, .meta, .path { color: var(--muted); font-size: .92rem; }
+    form { display: grid; gap: .75rem; margin-top: .8rem; }
+    input[type="search"], input[type="text"], input[type="date"], input[type="number"], select, button { padding: .55rem .7rem; border-radius: 8px; border: 1px solid var(--border); background: Canvas; color: CanvasText; }
+    input[type="search"] { width: 100%; font-size: 1.05rem; padding: .75rem .8rem; }
+    button { cursor: pointer; font-weight: 650; }
+    button.primary { background: Highlight; color: HighlightText; border-color: Highlight; }
+    .row { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; }
+    .row label { display: inline-flex; gap: .35rem; align-items: center; }
+    main.wrap { display: grid; grid-template-columns: 280px 1fr; gap: 1rem; align-items: start; }
+    aside { position: sticky; top: 145px; border: 1px solid var(--border); border-radius: 12px; padding: .9rem; background: var(--panel); }
+    aside h2 { font-size: 1rem; margin: 0 0 .5rem; }
+    aside label { display: grid; gap: .25rem; margin: .55rem 0; }
+    .status { margin-bottom: .75rem; min-height: 1.5rem; }
+    .result { border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin: 0 0 .9rem; background: color-mix(in srgb, CanvasText 3%, transparent); }
+    .result h3 { margin: .45rem 0 .2rem; }
+    .badges { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .pill { display: inline-block; border: 1px solid var(--border); border-radius: 999px; padding: .12rem .5rem; font-size: .82rem; }
+    .path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: color-mix(in srgb, CanvasText 7%, transparent); padding: .75rem; border-radius: 8px; max-height: 22rem; overflow: auto; }
+    mark { background: #ffe66d; color: #1f1a00; font-weight: 800; padding: 0 .08em; border-radius: .2em; }
+    @media (prefers-color-scheme: dark) { mark { background: #ffd43b; color: #1b1600; } }
+    .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
+    .chips { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+    .chip { font-size: .82rem; padding: .2rem .45rem; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, CanvasText 5%, transparent); cursor: pointer; }
+    .chip:hover { border-color: Highlight; }
+    .query-wrap { position: relative; }
+    .validation { display: flex; gap: .4rem; flex-wrap: wrap; min-height: 1.6rem; align-items: center; }
+    .validation .ok { color: #15803d; border-color: #22c55e; }
+    .validation .bad { color: #b91c1c; border-color: #ef4444; }
+    .validation .pending { color: var(--muted); }
+    .autocomplete { position: absolute; left: 0; right: 0; top: calc(100% + .25rem); z-index: 5; border: 1px solid var(--border); border-radius: 10px; background: Canvas; box-shadow: 0 12px 32px color-mix(in srgb, CanvasText 25%, transparent); overflow: hidden; }
+    .autocomplete[hidden] { display: none; }
+    .autocomplete button { display: grid; grid-template-columns: 1fr auto; width: 100%; border: 0; border-radius: 0; text-align: left; background: Canvas; padding: .55rem .75rem; }
+    .autocomplete button:hover, .autocomplete button.active { background: color-mix(in srgb, Highlight 18%, Canvas); }
+    .autocomplete .sub { color: var(--muted); font-size: .82rem; }
+    .slack-thread { display: grid; gap: .65rem; margin-top: .75rem; }
+    .slack-message { display: grid; grid-template-columns: 2.25rem 1fr; gap: .65rem; padding: .65rem .7rem; border-radius: 12px; background: color-mix(in srgb, CanvasText 5%, transparent); border: 1px solid color-mix(in srgb, CanvasText 10%, transparent); }
+    .avatar { width: 2.25rem; height: 2.25rem; border-radius: .5rem; display: grid; place-items: center; font-weight: 800; color: white; background: linear-gradient(135deg, #5b8def, #8b5cf6); text-transform: uppercase; }
+    .slack-head { display: flex; flex-wrap: wrap; gap: .4rem; align-items: baseline; margin-bottom: .2rem; }
+    .slack-author { font-weight: 800; }
+    .slack-time { color: var(--muted); font-size: .86rem; }
+    .slack-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .thread-badge { color: #7c3aed; border-color: color-mix(in srgb, #7c3aed 55%, var(--border)); }
+    .source-line { color: var(--muted); font-size: .78rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .doc-snippet { white-space: normal; font-family: inherit; }
+    .doc-line { margin: .18rem 0; }
+    .doc-heading { font-weight: 800; font-size: 1.05rem; margin-top: .35rem; }
+    .doc-list { margin-left: 1rem; }
+    .raw-toggle { margin-top: .35rem; }
+    .raw-snippet[hidden] { display: none; }
+    .result-facets { border: 1px solid var(--border); border-radius: 12px; padding: .85rem; margin-bottom: .9rem; background: var(--panel); }
+    .result-facets[hidden] { display: none; }
+    .facet-group { margin-top: .65rem; }
+    .facet-title { font-weight: 800; margin-bottom: .35rem; }
+    .facet-values { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .facet-chip { font-size: .82rem; padding: .22rem .5rem; border: 1px solid var(--border); border-radius: 999px; background: Canvas; cursor: pointer; }
+    .facet-chip.active { background: Highlight; color: HighlightText; border-color: Highlight; }
+    .facet-toolbar { display: flex; gap: .55rem; align-items: center; flex-wrap: wrap; }
+    .facet-toolbar-title { font-weight: 800; margin-right: .2rem; }
+    .facet-dropdown { position: relative; }
+    .facet-dropdown summary { list-style: none; cursor: pointer; border: 1px solid var(--border); border-radius: 999px; padding: .35rem .65rem; background: Canvas; font-weight: 750; }
+    .facet-dropdown summary::-webkit-details-marker { display: none; }
+    .facet-dropdown[open] summary { border-color: Highlight; box-shadow: 0 0 0 2px color-mix(in srgb, Highlight 22%, transparent); }
+    .facet-panel { position: absolute; z-index: 4; top: calc(100% + .45rem); left: 0; width: min(34rem, 78vw); max-height: 22rem; overflow: auto; padding: .7rem; border: 1px solid var(--border); border-radius: 12px; background: Canvas; box-shadow: 0 16px 40px color-mix(in srgb, CanvasText 25%, transparent); }
+    .facet-panel .facet-values { gap: .4rem; }
+    .active-facets { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .55rem; }
+    .active-facets:empty { display: none; }
+    .facet-active-chip { border-color: Highlight; color: HighlightText; background: Highlight; }
+    .result-facets { padding: .65rem .75rem; }
+    .facet-count { opacity: .75; margin-left: .25rem; }
+    dialog { width: min(1100px, 94vw); max-height: 88vh; border-radius: 12px; border: 1px solid var(--border); }
+    dialog pre { max-height: 68vh; }
+    @media (max-width: 850px) { main.wrap { grid-template-columns: 1fr; } aside { position: static; } header { position: static; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Slack QMD Wiki Search</h1>
+      <div class="hint">Search raw Slack evidence, materialized Slack API chunks, and generated wiki pages. Lexical search is fast; hybrid/vector search may be slower on the CPU-only VM.</div>
+      <form id="searchForm">
+        <div class="query-wrap">
+          <input id="query" type="search" placeholder="Search… e.g. OAuth refresh tokens from:Jamie in:#general after:2026-01-01" autofocus required autocomplete="off" spellcheck="false" />
+          <div id="queryAutocomplete" class="autocomplete" hidden></div>
+        </div>
+        <div id="queryValidation" class="validation hint">Type <code>from:</code>, <code>user:</code>, <code>in:</code>, or <code>channel:</code> for validated autocomplete.</div>
+        <div class="row">
+          <button class="primary" type="submit">Search</button>
+          <label>Mode <select id="mode"><option value="lex" selected>Lexical / BM25</option><option value="hybrid">Hybrid QMD</option><option value="vec">Vector</option></select></label>
+          <label>Results <input id="limit" type="number" min="1" max="500" value="25" /></label>
+          <label>Sort <select id="sort"><option value="relevance" selected>Relevance</option><option value="date-desc">Newest first</option><option value="date-asc">Oldest first</option><option value="channel">Channel/path</option><option value="corpus">Corpus</option></select></label>
+          <label title="Hybrid only; much slower on CPU"><input id="rerank" type="checkbox" /> rerank</label>
+        </div>
+        <div class="chips" id="decoratorChips"><span class="hint">Decorators:</span></div>
+        <div class="hint">Examples: <code>from:"Jordan Example"</code>, <code>in:#general</code>, <code>after:2026-01-01</code>, <code>before:2026-02-01</code>, <code>corpus:wiki</code>, <code>mode:hybrid</code>, <code>sort:newest</code></div>
+      </form>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <aside>
+      <h2>Filters</h2>
+      <label><span>Corpus</span>
+        <span><input type="checkbox" name="collection" value="chunks" checked /> Slack API chunks</span>
+        <span><input type="checkbox" name="collection" value="raw" checked /> Raw Slack markdown</span>
+        <span><input type="checkbox" name="collection" value="wiki" checked /> Wiki</span>
+      </label>
+      <label>Channel/path <input id="channel" type="text" list="channelOptions" placeholder="general, random, C123…" /></label>
+      <label>User/speaker <input id="user" type="text" list="userOptions" placeholder="Jordan, Jamie, bot name…" /></label>
+      <label>Date from <input id="dateFrom" type="date" /></label>
+      <label>Date to <input id="dateTo" type="date" /></label>
+      <label>Filter result text <input id="within" type="text" placeholder="term within returned results" /></label>
+      <p class="hint">Date/channel filters are applied after QMD retrieval. If a filtered search looks sparse, increase result count.</p>
+      <button type="button" id="clearFilters">Clear filters</button>
+    </aside>
+
+    <section>
+      <div id="status" class="status"></div>
+      <div id="resultFacets" class="result-facets" hidden></div>
+      <div id="results"></div>
+    </section>
+  </main>
+
+  <datalist id="channelOptions"></datalist>
+  <datalist id="userOptions"></datalist>
+
+  <dialog id="docDialog">
+    <form method="dialog"><button style="float:right">Close</button></form>
+    <h2 id="docTitle">Document</h2>
+    <pre id="docBody">Loading…</pre>
+  </dialog>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+const form = $('#searchForm');
+const statusEl = $('#status');
+const resultsEl = $('#results');
+const resultFacetsEl = $('#resultFacets');
+const dialog = $('#docDialog');
+const docTitle = $('#docTitle');
+const docBody = $('#docBody');
+let lastResults = [];
+let allResults = [];
+let lastSearchMeta = null;
+let resultFacetFilters = {corpus: new Set(), channel: new Set(), date: new Set(), user: new Set()};
+let activeHighlightTerms = [];
+let facets = {channels: [], users: [], decorators: []};
+let userLookup = new Map();
+let channelLookup = new Map();
+let autocompleteState = {items: [], active: 0, context: null};
+
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeRegex(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function buildHighlightTerms() {
+  const stop = new Set(['and','or','the','for','with','from','that','this','what','when','where','how','why','did','does','are','was','were','into','onto','about','mode','sort','corpus','after','before','channel','user']);
+  const terms = [];
+  const sources = [$('#query').value, $('#channel').value, $('#user').value, $('#within').value];
+  for (let q of sources) {
+    q = q.replace(/^(lex|vec|hyde|intent|expand):/gmi, ' ')
+         .replace(/(^|\s)(from|user|in|channel|after|before|on|corpus|mode|sort):/gi, ' ');
+    for (const match of q.matchAll(/"([^"]+)"|'([^']+)'|([^\s]+)/g)) {
+      const raw = (match[1] || match[2] || match[3] || '').replace(/^-/, '').trim();
+      const cleaned = raw.replace(/^[^\p{L}\p{N}#@_.:-]+|[^\p{L}\p{N}#@_.:-]+$/gu, '');
+      if (cleaned.length >= 2 && !stop.has(cleaned.toLowerCase())) terms.push(cleaned.replace(/^#/, ''));
+    }
+  }
+  return [...new Map(terms.map((t) => [t.toLowerCase(), t])).values()].sort((a, b) => b.length - a.length).slice(0, 30);
+}
+function highlight(s) {
+  const html = escapeHtml(s);
+  if (!activeHighlightTerms.length) return html;
+  const pattern = activeHighlightTerms.map((term) => escapeRegex(escapeHtml(term))).join('|');
+  if (!pattern) return html;
+  return html.replace(new RegExp(`(${pattern})`, 'gi'), '<mark>$1</mark>');
+}
+function selectedCollections() { const values = [...document.querySelectorAll('input[name="collection"]:checked')].map(i => i.value); return values.length ? values.join(',') : 'all'; }
+function params() {
+  const p = new URLSearchParams({ q: $('#query').value, mode: $('#mode').value, n: $('#limit').value, sort: $('#sort').value, collection: selectedCollections() });
+  for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within']) if ($('#' + id).value) p.set(id, $('#' + id).value);
+  if ($('#rerank').checked) p.set('rerank', '1');
+  return p;
+}
+function normName(s) { return String(s || '').trim().replace(/^#/, '').toLowerCase(); }
+function quoteDecoratorValue(s) { return /\s/.test(s) ? '"' + String(s).replaceAll('\"', '\\"') + '"' : String(s); }
+function decoratorType(key) { return ['from', 'user'].includes(String(key).toLowerCase()) ? 'user' : 'channel'; }
+function parseSearchDecorators(value) {
+  const out = [];
+  const re = /(^|\s)(from|user|in|channel):("([^"]*)"|'([^']*)'|([^\s]*))/gi;
+  for (const m of value.matchAll(re)) {
+    const key = m[2].toLowerCase();
+    const val = (m[4] ?? m[5] ?? m[6] ?? '').trim();
+    const type = decoratorType(key);
+    out.push({key, type, value: val, start: m.index + (m[1] || '').length, end: m.index + m[0].length});
+  }
+  return out;
+}
+function validateSearchDecorators() {
+  const tokens = parseSearchDecorators($('#query').value);
+  const validation = $('#queryValidation');
+  const messages = [];
+  const invalid = [];
+  for (const token of tokens) {
+    if (!token.value) {
+      messages.push('<span class="pill pending">' + escapeHtml(token.key) + ': choose a ' + token.type + '</span>');
+      continue;
+    }
+    if (token.type === 'user') {
+      const hit = userLookup.get(normName(token.value));
+      if (hit) messages.push('<span class="pill ok">✓ ' + escapeHtml(token.key + ':' + quoteDecoratorValue(hit.name) + (hit.realName && normName(hit.realName) !== normName(hit.name) ? ' — ' + hit.realName : '')) + '</span>');
+      else { invalid.push(token); messages.push('<span class="pill bad">Unknown user: ' + escapeHtml(token.value) + '</span>'); }
+    } else {
+      const hit = channelLookup.get(normName(token.value));
+      if (hit) messages.push('<span class="pill ok">✓ ' + escapeHtml(token.key + ':#' + hit.name) + '</span>');
+      else { invalid.push(token); messages.push('<span class="pill bad">Unknown channel: ' + escapeHtml(token.value) + '</span>'); }
+    }
+  }
+  validation.innerHTML = messages.length ? messages.join('') : 'Type <code>from:</code>, <code>user:</code>, <code>in:</code>, or <code>channel:</code> for validated autocomplete.';
+  return {tokens, invalid};
+}
+function currentDecoratorContext() {
+  const input = $('#query');
+  const cursor = input.selectionStart || 0;
+  const before = input.value.slice(0, cursor);
+  const m = before.match(/(^|\s)(from|user|in|channel):("([^"]*)|'([^']*)|([^\s"]*))$/i);
+  if (!m) return null;
+  const key = m[2].toLowerCase();
+  const typed = (m[4] ?? m[5] ?? m[6] ?? '').trim();
+  const tokenStart = before.length - m[0].length + (m[1] || '').length;
+  return {key, type: decoratorType(key), typed, start: tokenStart, end: cursor};
+}
+function suggestionsForContext(ctx) {
+  if (!ctx) return [];
+  const q = normName(ctx.typed);
+  const source = ctx.type === 'user' ? facets.users : facets.channels;
+  return source
+    .filter((item) => {
+      const name = normName(item.name); const id = normName(item.id);
+      return !q || name.startsWith(q) || name.includes(q) || id.startsWith(q);
+    })
+    .sort((a, b) => {
+      const an = normName(a.name), bn = normName(b.name);
+      const as = q && an.startsWith(q) ? 0 : 1;
+      const bs = q && bn.startsWith(q) ? 0 : 1;
+      return as - bs || (b.count || 0) - (a.count || 0) || a.name.localeCompare(b.name);
+    })
+    .slice(0, 10);
+}
+function renderAutocomplete() {
+  const box = $('#queryAutocomplete');
+  const ctx = currentDecoratorContext();
+  const items = suggestionsForContext(ctx);
+  autocompleteState = {items, active: 0, context: ctx};
+  if (!ctx || !items.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = items.map((item, i) => {
+    const value = ctx.type === 'channel' ? '#' + item.name : (item.label || item.name);
+    const sub = ctx.type === 'user'
+      ? [item.slackName ? '@' + item.slackName : '', item.id, item.title || '', item.count ? item.count + ' messages' : ''].filter(Boolean).join(' · ')
+      : [item.id, item.count ? item.count + ' docs/messages' : '', item.type || ''].filter(Boolean).join(' · ');
+    return '<button type="button" class="' + (i === 0 ? 'active' : '') + '" data-index="' + i + '"><span>' + escapeHtml(value) + '</span><span class="sub">' + escapeHtml(sub) + '</span></button>';
+  }).join('');
+}
+function paintAutocompleteActive() {
+  [...$('#queryAutocomplete').querySelectorAll('button[data-index]')].forEach((button, i) => button.classList.toggle('active', i === autocompleteState.active));
+}
+function applyAutocomplete(index = autocompleteState.active) {
+  const ctx = autocompleteState.context;
+  const item = autocompleteState.items[index];
+  if (!ctx || !item) return false;
+  const input = $('#query');
+  const before = input.value.slice(0, ctx.start);
+  const after = input.value.slice(ctx.end);
+  const value = ctx.type === 'user' ? quoteDecoratorValue(item.name) : '#' + item.name;
+  const replacement = ctx.key + ':' + value + ' ';
+  input.value = before + replacement + after.replace(/^\s*/, '');
+  const pos = (before + replacement).length;
+  input.setSelectionRange(pos, pos);
+  $('#queryAutocomplete').hidden = true;
+  validateSearchDecorators();
+  input.focus();
+  return true;
+}
+function updateSearchAssist() { validateSearchDecorators(); renderAutocomplete(); }
+async function copyText(text) { await navigator.clipboard.writeText(text); statusEl.textContent = 'Copied.'; }
+function markdownCitation(r) { return `> ${r.snippet || ''}
+
+Source: ${r.file || r.docid || ''}`; }
+function isSlackResult(r) {
+  const corpus = String(r.meta?.corpus || '').toLowerCase();
+  const file = String(r.file || '');
+  return corpus.includes('slack') || file.startsWith('qmd://slack-raw/') || file.startsWith('qmd://slack-api-chunks/');
+}
+function stripSnippetLine(line) {
+  return String(line || '').replace(/^\s*\d+:\s?/, '').trimEnd();
+}
+function parseSlackMessages(snippet) {
+  const rawLines = String(snippet || '').split(/\r?\n/);
+  const messages = [];
+  let current = null;
+  for (const raw of rawLines) {
+    const line = stripSnippetLine(raw);
+    if (!line || /^@@/.test(line) || /^---$/.test(line)) continue;
+    const heading = line.match(/^##\s+([^|]+?)\s+\|\s+([^|]+?)\s+\|\s+ts=([^\s]+)(.*)$/);
+    if (heading) {
+      if (current) messages.push(current);
+      current = {
+        timestamp: heading[1].trim(),
+        user: heading[2].trim(),
+        ts: heading[3].trim(),
+        thread: heading[4].trim(),
+        body: [],
+        sourceLine: raw.match(/^\s*(\d+):/)?.[1] || '',
+      };
+      continue;
+    }
+    if (current) current.body.push(line);
+  }
+  if (current) messages.push(current);
+  return messages;
+}
+function initials(name) {
+  const parts = String(name || '?').trim().split(/\s+/).filter(Boolean);
+  return (parts.length > 1 ? parts[0][0] + parts.at(-1)[0] : (parts[0] || '?').slice(0, 2)).toUpperCase();
+}
+function prettySlackTime(value) {
+  const s = String(value || '').replace('T', ' ').replace(/\+00:00$/, ' UTC');
+  return s;
+}
+function renderSlackBody(lines) {
+  const text = lines.join('\n').trim() || '—';
+  return highlight(text)
+    .replace(/&lt;(https?:[^|&]+)\|([^&]+)&gt;/g, '<a target="_blank" rel="noreferrer" href="$1">$2</a>')
+    .replace(/&lt;(https?:[^&]+)&gt;/g, '<a target="_blank" rel="noreferrer" href="$1">$1</a>');
+}
+function renderSlackMessages(r) {
+  const messages = parseSlackMessages(r.snippet || r.text || '');
+  if (!messages.length) return `<pre>${highlight(r.snippet || r.text || '')}</pre>`;
+  return `<div class="slack-thread">${messages.map((m) => {
+    const threadBits = m.thread ? m.thread.split(/\s+/).filter(Boolean) : [];
+    const threadHtml = threadBits.map((bit) => `<span class="pill thread-badge">${highlight(bit)}</span>`).join('');
+    return `<section class="slack-message">
+      <div class="avatar">${escapeHtml(initials(m.user))}</div>
+      <div>
+        <div class="slack-head"><span class="slack-author">${highlight(m.user)}</span><span class="slack-time">${highlight(prettySlackTime(m.timestamp))}</span>${threadHtml}${m.sourceLine ? `<span class="source-line">line ${escapeHtml(m.sourceLine)}</span>` : ''}</div>
+        <div class="slack-body">${renderSlackBody(m.body)}</div>
+      </div>
+    </section>`;
+  }).join('')}</div>`;
+}
+function renderDocumentSnippet(text) {
+  const lines = String(text || '').split(/\r?\n/).map(stripSnippetLine).filter((line) => line && !/^@@/.test(line));
+  if (!lines.length) return '<div class="doc-snippet hint">No snippet.</div>';
+  return `<div class="doc-snippet">${lines.slice(0, 80).map((line) => {
+    if (/^#{1,6}\s+/.test(line)) return `<div class="doc-line doc-heading">${highlight(line.replace(/^#{1,6}\s+/, ''))}</div>`;
+    if (/^[-*]\s+/.test(line)) return `<div class="doc-line doc-list">• ${highlight(line.replace(/^[-*]\s+/, ''))}</div>`;
+    if (/^```/.test(line)) return `<div class="doc-line source-line">${highlight(line)}</div>`;
+    return `<div class="doc-line">${highlight(line)}</div>`;
+  }).join('')}</div>`;
+}
+function resultHtml(r, index) {
+  const file = r.file || r.path || r.id || '';
+  const score = typeof r.score === 'number' ? r.score.toFixed(4) : (r.score ?? '');
+  const m = r.meta || {};
+  const bodyHtml = isSlackResult(r) ? renderSlackMessages(r) : renderDocumentSnippet(r.snippet || r.text || '');
+  const kind = isSlackResult(r) ? 'Slack messages' : (m.corpus === 'wiki' ? 'Wiki/document' : 'Document');
+  return `<article class="result" data-index="${index}">
+    <div class="badges"><span class="pill">#${index + 1}</span><span class="pill">${escapeHtml(kind)}</span><span class="pill">${highlight(m.corpus || 'unknown')}</span>${m.date ? `<span class="pill">${highlight(m.date)}</span>` : ''}${m.channel ? `<span class="pill">${highlight(m.channel)}</span>` : ''}<span class="pill">score ${highlight(score)}</span>${r.exactUserMatches ? `<span class="pill">${escapeHtml(r.exactUserMatches)} exact user msg(s)</span>` : ''}</div>
+    <h3>${highlight(r.title || file || 'Untitled')}</h3>
+    <div class="path">${highlight(file)}</div>
+    ${r.context ? `<p class="hint">${highlight(r.context)}</p>` : ''}
+    ${bodyHtml}
+    <details class="raw-toggle"><summary class="hint">Raw QMD snippet</summary><pre class="raw-snippet">${highlight(r.snippet || r.text || '')}</pre></details>
+    <div class="actions">
+      ${file ? `<button type="button" data-action="open">Open lines</button><button type="button" data-action="copy-uri">Copy URI</button>` : ''}
+      <button type="button" data-action="copy-snippet">Copy snippet</button>
+      <button type="button" data-action="copy-citation">Copy citation</button>
+      <button type="button" data-action="json">View JSON</button>
+    </div>
+  </article>`;
+}
+function resultUsers(result) {
+  if (!isSlackResult(result)) return [];
+  return [...new Set(parseSlackMessages(result.snippet || result.text || '').map((m) => m.user).filter(Boolean))];
+}
+function increment(map, key) {
+  if (!key) return;
+  map.set(key, (map.get(key) || 0) + 1);
+}
+function topFacetValues(map, limit = 24) {
+  return [...map.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0, limit);
+}
+function computeResultFacets(results) {
+  const counts = {corpus: new Map(), channel: new Map(), date: new Map(), user: new Map()};
+  for (const r of results) {
+    increment(counts.corpus, r.meta?.corpus || 'unknown');
+    increment(counts.channel, r.meta?.channel || '');
+    increment(counts.date, r.meta?.date || '');
+    for (const user of resultUsers(r)) increment(counts.user, user);
+  }
+  return counts;
+}
+function resultMatchesFacetFilters(result) {
+  const checks = [
+    ['corpus', result.meta?.corpus || 'unknown'],
+    ['channel', result.meta?.channel || ''],
+    ['date', result.meta?.date || ''],
+  ];
+  for (const [key, value] of checks) {
+    if (resultFacetFilters[key].size && !resultFacetFilters[key].has(value)) return false;
+  }
+  if (resultFacetFilters.user.size) {
+    const users = resultUsers(result);
+    if (!users.some((u) => resultFacetFilters.user.has(u))) return false;
+  }
+  return true;
+}
+function filteredResults() {
+  return allResults.filter(resultMatchesFacetFilters);
+}
+function hasResultFacetFilters() {
+  return Object.values(resultFacetFilters).some((set) => set.size > 0);
+}
+function clearResultFacetFilters() {
+  resultFacetFilters = {corpus: new Set(), channel: new Set(), date: new Set(), user: new Set()};
+}
+function facetButtonHtml(kind, value, count) {
+  const active = resultFacetFilters[kind].has(value);
+  return `<button type="button" class="facet-chip ${active ? 'active' : ''}" data-facet-kind="${escapeHtml(kind)}" data-facet-value="${escapeHtml(value)}">${highlight(value)} <span class="facet-count">${count}</span></button>`;
+}
+function activeFacetChipsHtml() {
+  const chips = [];
+  for (const [kind, set] of Object.entries(resultFacetFilters)) {
+    for (const value of set) chips.push(`<button type="button" class="facet-chip facet-active-chip" data-facet-kind="${escapeHtml(kind)}" data-facet-value="${escapeHtml(value)}">${escapeHtml(kind)}: ${highlight(value)} ×</button>`);
+  }
+  return chips.join('');
+}
+function renderFacetGroup(title, kind, entries) {
+  if (!entries.length) return '';
+  const activeCount = resultFacetFilters[kind].size;
+  const total = entries.reduce((sum, [, count]) => sum + count, 0);
+  return `<details class="facet-dropdown"><summary>${escapeHtml(title)}${activeCount ? ` · ${activeCount} selected` : ` · ${entries.length}`}</summary><div class="facet-panel"><div class="hint" style="margin-bottom:.5rem">${total} result hit(s) across ${entries.length} returned value(s)</div><div class="facet-values">${entries.map(([value, count]) => facetButtonHtml(kind, value, count)).join('')}</div></div></details>`;
+}
+function renderResultFacets() {
+  if (!allResults.length) { resultFacetsEl.hidden = true; resultFacetsEl.innerHTML = ''; return; }
+  const counts = computeResultFacets(allResults);
+  const active = hasResultFacetFilters();
+  resultFacetsEl.hidden = false;
+  resultFacetsEl.innerHTML = `<div class="facet-toolbar"><span class="facet-toolbar-title">Narrow returned results</span><span class="hint">Instant filters for this result set</span>`
+    + renderFacetGroup('Corpus', 'corpus', topFacetValues(counts.corpus, 12))
+    + renderFacetGroup('Channel', 'channel', topFacetValues(counts.channel, 30))
+    + renderFacetGroup('Date', 'date', topFacetValues(counts.date, 40))
+    + renderFacetGroup('User', 'user', topFacetValues(counts.user, 30))
+    + `${active ? '<button type="button" data-clear-result-facets="1">Clear</button>' : ''}</div><div class="active-facets">${activeFacetChipsHtml()}</div>`;
+}
+function renderVisibleResults() {
+  const visible = filteredResults();
+  const elapsed = lastSearchMeta?.elapsed ? ` (${lastSearchMeta.elapsed}s)` : '';
+  const filterText = hasResultFacetFilters() ? `; ${visible.length} after result filters` : '';
+  if (lastSearchMeta) statusEl.textContent = `${lastSearchMeta.returned} returned from QMD${filterText}; ${lastSearchMeta.matched} matched from ${lastSearchMeta.fetched} fetched${elapsed}. Max per search: ${lastSearchMeta.maxResults}.`;
+  lastResults = visible;
+  resultsEl.innerHTML = visible.map(resultHtml).join('') || '<p>No results match the selected result filters.</p>';
+  renderResultFacets();
+}
+async function search() {
+  const validation = validateSearchDecorators();
+  if (validation.invalid.length) {
+    statusEl.textContent = 'Fix unknown user/channel decorators before searching.';
+    $('#query').focus();
+    return;
+  }
+  statusEl.textContent = 'Searching…';
+  activeHighlightTerms = buildHighlightTerms();
+  resultsEl.innerHTML = '';
+  resultFacetsEl.hidden = true;
+  resultFacetsEl.innerHTML = '';
+  const started = performance.now();
+  try {
+    const response = await fetch(`/api/search?${params()}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || data.stderr || 'search failed');
+    allResults = data.results || [];
+    clearResultFacetFilters();
+    const elapsed = ((performance.now() - started) / 1000).toFixed(1);
+    lastSearchMeta = {returned: data.returned, matched: data.matched, fetched: data.fetched, maxResults: data.maxResults, elapsed};
+    renderVisibleResults();
+  } catch (error) {
+    statusEl.textContent = `Error: ${error.message}`;
+  }
+}
+$('#query').addEventListener('input', updateSearchAssist);
+$('#query').addEventListener('click', updateSearchAssist);
+$('#query').addEventListener('keyup', (event) => { if (!['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(event.key)) updateSearchAssist(); });
+$('#query').addEventListener('keydown', (event) => {
+  const box = $('#queryAutocomplete');
+  if (box.hidden) return;
+  if (event.key === 'ArrowDown') { event.preventDefault(); autocompleteState.active = Math.min(autocompleteState.active + 1, autocompleteState.items.length - 1); paintAutocompleteActive(); }
+  else if (event.key === 'ArrowUp') { event.preventDefault(); autocompleteState.active = Math.max(autocompleteState.active - 1, 0); paintAutocompleteActive(); }
+  else if (event.key === 'Enter' || event.key === 'Tab') { if (applyAutocomplete()) event.preventDefault(); }
+  else if (event.key === 'Escape') { box.hidden = true; }
+});
+$('#queryAutocomplete').addEventListener('mousedown', (event) => {
+  const button = event.target.closest('button[data-index]');
+  if (!button) return;
+  event.preventDefault();
+  applyAutocomplete(Number(button.dataset.index));
+});
+form.addEventListener('submit', (event) => { event.preventDefault(); search(); });
+$('#clearFilters').addEventListener('click', () => { for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within']) $('#' + id).value = ''; });
+resultFacetsEl.addEventListener('click', (event) => {
+  const clear = event.target.closest('button[data-clear-result-facets]');
+  if (clear) { clearResultFacetFilters(); renderVisibleResults(); return; }
+  const button = event.target.closest('button[data-facet-kind]');
+  if (!button) return;
+  const kind = button.dataset.facetKind;
+  const value = button.dataset.facetValue;
+  const set = resultFacetFilters[kind];
+  if (!set) return;
+  if (set.has(value)) set.delete(value); else set.add(value);
+  renderVisibleResults();
+});
+resultsEl.addEventListener('click', async (event) => {
+  const button = event.target.closest('button[data-action]'); if (!button) return;
+  const article = event.target.closest('.result'); const r = lastResults[Number(article.dataset.index)]; const file = r.file || r.path || '';
+  const action = button.dataset.action;
+  if (action === 'copy-uri') return copyText(file);
+  if (action === 'copy-snippet') return copyText(r.snippet || '');
+  if (action === 'copy-citation') return copyText(markdownCitation(r));
+  if (action === 'json') { docTitle.textContent = 'Result JSON'; docBody.innerHTML = highlight(JSON.stringify(r, null, 2)); return dialog.showModal(); }
+  if (action === 'open') {
+    docTitle.textContent = file; docBody.textContent = 'Loading…'; dialog.showModal();
+    try { const response = await fetch(`/api/get?target=${encodeURIComponent(file)}&lines=220`); const body = await response.text(); docBody.innerHTML = response.ok ? highlight(body) : highlight(`Error: ${body}`); }
+    catch (error) { docBody.textContent = `Error: ${error.message}`; }
+  }
+});
+async function loadFacets() {
+  try {
+    const response = await fetch('/api/facets');
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'facets failed');
+    facets = data;
+    userLookup = new Map();
+    channelLookup = new Map();
+    for (const u of (data.users || [])) {
+      userLookup.set(normName(u.name), u);
+      if (u.id) userLookup.set(normName(u.id), u);
+      if (u.slackName) userLookup.set(normName(u.slackName), u);
+      if (u.realName) userLookup.set(normName(u.realName), u);
+      if (u.displayName) userLookup.set(normName(u.displayName), u);
+      for (const alias of (u.aliases || [])) userLookup.set(normName(alias), u);
+    }
+    for (const c of (data.channels || [])) { channelLookup.set(normName(c.name), c); if (c.id) channelLookup.set(normName(c.id), c); }
+    $('#channelOptions').innerHTML = (data.channels || []).slice(0, 1000).map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.id ? `${c.id} · ${c.count || 0}` : `${c.count || 0}`)}</option>`).join('');
+    $('#userOptions').innerHTML = (data.users || []).slice(0, 2000).map((u) => `<option value="${escapeHtml(u.name)}">${escapeHtml([u.realName && normName(u.realName) !== normName(u.name) ? u.realName : '', u.slackName ? '@' + u.slackName : '', u.id || '', u.count ? `${u.count} messages` : ''].filter(Boolean).join(' · '))}</option>`).join('');
+    updateSearchAssist();
+    if (data.dates?.min && !$('#dateFrom').placeholder) $('#dateFrom').title = `Earliest raw Slack date: ${data.dates.min}`;
+    if (data.dates?.max && !$('#dateTo').placeholder) $('#dateTo').title = `Latest raw Slack date: ${data.dates.max}`;
+    const chips = data.decorators || [];
+    $('#decoratorChips').innerHTML = '<span class="hint">Decorators:</span>' + chips.map((d) => `<button class="chip" type="button" data-decorator="${escapeHtml(d)}">${escapeHtml(d)}</button>`).join('');
+  } catch (error) {
+    $('#decoratorChips').insertAdjacentHTML('beforeend', `<span class="hint">facet load failed: ${escapeHtml(error.message)}</span>`);
+  }
+}
+$('#decoratorChips').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-decorator]');
+  if (!button) return;
+  const input = $('#query');
+  const add = button.dataset.decorator;
+  input.value = input.value.trim() ? `${input.value.trim()} ${add}` : add;
+  input.focus();
+});
+loadFacets();
+</script>
+</body>
+</html>

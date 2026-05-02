@@ -151,6 +151,21 @@ function applyFilters(results, params) {
     return true;
   });
 }
+
+function sourceWeightForResult(result, params) {
+  const corpus = String(result.meta?.corpus || '').toLowerCase();
+  const slackWeight = Math.max(0, Number(params.get('slackWeight') || 70)) / 100;
+  const obsidianWeight = Math.max(0, Number(params.get('obsidianWeight') || 30)) / 100;
+  if (corpus.includes('slack')) return slackWeight || 0.01;
+  if (corpus.includes('wiki')) return obsidianWeight || 0.01;
+  return 1;
+}
+function applySourceWeights(results, params) {
+  const sort = String(params.get('sort') || 'relevance');
+  if (sort && sort !== 'relevance') return results;
+  return [...results].sort((a, b) => (Number(b.score || 0) * sourceWeightForResult(b, params)) - (Number(a.score || 0) * sourceWeightForResult(a, params)));
+}
+
 function sortResults(results, sort) {
   const copy = [...results];
   if (sort === 'date-desc') copy.sort((a, b) => String(b.meta?.date || '').localeCompare(String(a.meta?.date || '')) || Number(b.score || 0) - Number(a.score || 0));
@@ -448,6 +463,7 @@ async function buildTelemetry() {
 }
 
 async function handleSearch(req, res, url) {
+  const startedAt = Date.now();
   let built;
   try { built = buildSearchArgs(url.searchParams); }
   catch (error) { return json(res, 400, {error: error.message}); }
@@ -460,8 +476,9 @@ async function handleSearch(req, res, url) {
     const filtered = applyFilters(enriched, built.effective);
     const exactUserFiltered = await applyExactUserSnippets(filtered, built.effective);
     const sorted = sortResults(exactUserFiltered, String(built.effective.get('sort') || 'relevance'));
-    const limited = sorted.slice(0, built.requestedLimit);
-    return json(res, 200, {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, maxResults: MAX_RESULTS, fetched: parsed.length, matched: exactUserFiltered.length, returned: limited.length, results: limited});
+    const weighted = applySourceWeights(sorted, built.effective);
+    const limited = weighted.slice(0, built.requestedLimit);
+    return json(res, 200, {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, maxResults: MAX_RESULTS, fetched: parsed.length, matched: exactUserFiltered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited});
   } catch (error) {
     return json(res, 500, {error: 'qmd returned non-json output', stdout: result.stdout.slice(0, 4000), stderr: result.stderr.slice(-4000)});
   }

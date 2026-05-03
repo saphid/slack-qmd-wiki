@@ -1,36 +1,28 @@
 # QMD Search UI flows
 
-This page is intentionally a single-page local web UI. Visible controls must either perform a visible action or be hidden.
+The web UI is deliberately small. Visible controls must prove one of the core search flows below; speculative rails, AI rewriting, boards, telemetry dashboards, saved-search drawers, and fake demo data stay out until they have real state and E2E coverage.
 
 ## Data policy
 
-- Autosuggest is backed only by `/api/facets` from local Slack/QMD metadata.
-- The client must never fabricate people, channels, or Slack examples.
-- If no facet metadata is present, decorator autosuggest shows an honest empty state.
-- The public repo must not commit Slack data, QMD indexes, chunks, raw exports, `.state`, `.env`, or tokens.
+- Suggestions come only from `/api/facets` and local Slack/QMD metadata.
+- The client must never fabricate people, channels, Slack examples, or results.
+- Public code must not commit Slack data, QMD indexes, chunks, raw exports, `.state`, `.env`, or tokens.
 
-## Primary flows
+## Core flows
 
-| Flow | Controls | Expected behavior | Proof selector/API |
+| Flow | Controls/API | Expected behavior | Proof |
 | --- | --- | --- | --- |
-| Search | `#query`, `.search-submit` | Calls `/api/search`, renders result cards, records local history. If `qmd` is missing, local markdown fallback is clearly labelled. | `#status`, `.result` |
-| Decorator autosuggest | `user:`, `from:`, `in:`, `channel:` in `#query` | Shows real facet suggestions when available; otherwise an empty-state message. | `#queryAutocomplete` |
-| Query chips | `#queryTokens [data-remove-token]`, `#addFilterChip` | Remove parsed decorators or focus query for manual filter entry. | `#query` value |
-| Modes | `[data-mode]` | Updates active mode and hidden `#mode`; next search sends that mode. | `#mode` |
-| Result options | `#limit`, `#sort`, `#rerank` | Limit/sort/rerank are reflected in search params; sort also reorders current returned set. | `/api/search` params, `#status` |
-| Sources | `input[name=collection]`, `#slackWeight`, `#obsidianWeight` | Collections are sent to search; weights affect relevance ordering where backend has mixed sources. | `/api/search` params |
-| Slack filters | `#channel`, `#includeDms`, `#user`, date range controls | Sent to `/api/search` and applied server-side. | `#status`, returned counts |
-| Wiki filters | `#tagFilter`, `#folderFilter` | Populated from real wiki facets and sent to `/api/search`; empty when unavailable. | `/api/facets`, `#tagChips` |
-| Returned-result facets | facet strip and facet chips | Narrow only the current returned result set without re-querying. | `#resultFacets`, visible result count |
-| Tabs/views/timeline | result tabs, `[data-view]`, `#timelineView` | Tabs filter current results; grid/list changes layout; timeline sorts current results newest first. | `#results.className`, `#status` |
-| Result actions | Open lines, Copy URI, Copy snippet, JSON, raw snippet | Open source/JSON dialogs or copy text; raw snippet expands inline. | `#docDialog`, clipboard/status |
-| Saved searches | `#saveSearch`, Saved rail | Save named local search; Saved opens a modal list with Run/Copy/Delete. | localStorage, dialog buttons |
-| History | history icon, History rail | Opens modal list with Run/Copy/Delete. No browser alert. | localStorage, dialog buttons |
-| Share | `#shareSearch` | Copies current URL plus query params and reports status. | `#status` |
-| Help/more | `#docsButton`, `#moreMenu`, Settings rail | Opens actionable modal content. | `#docDialog` |
-| Clear | `#clearAllTop`, `#clearFilters`, `#clearQuery` | Clears the intended scope visibly; Clear all removes results too. | `#query`, `#results`, `#status` |
-| Telemetry | `#telemetry`, `#refreshTelemetry` | Loads `/api/telemetry`; handles missing qmd gracefully. | `#telemetryBody` |
+| Service health | `#healthButton`, `/health` | Reports localhost service health and configured max result cap. | E2E clicks health and sees `Service OK`. |
+| Search | `#query`, submit button, `/api/search` | Runs QMD with argument arrays; if QMD is unavailable or unusable in a generic checkout, falls back to local markdown and labels the fallback. | API smoke + browser E2E return at least one result for `wiki`. |
+| Search options | `#mode`, `#limit`, `#sort`, collection checkboxes | Sends mode/limit/sort/collection to `/api/search`; unknown collections/modes return a 400 JSON error. | E2E sets mode/limit/sort before searching. |
+| Filters | channel, user, date range, within-result text | Server-side post-filtering narrows returned results without shell interpolation. | E2E clears filters and verifies visible state resets. |
+| Facet suggestions | `/api/facets`, main-query `user:`, `from:`, `in:`, `channel:` autocomplete, and capped `datalist` controls | Loads real local channel/user metadata when present; query autocomplete renders only the best matching suggestions so thousands of channel facets do not slow the page. Empty lists are valid in a generic checkout. | E2E verifies facet arrays, rejects `U-DEMO`/`C-DEMO`, and exercises user/channel query suggestions when facets exist. |
+| Result rendering | `.result` cards | Shows title, QMD/local URI, corpus/date/channel badges, score, and snippet with highlighting. | E2E verifies at least one `.result`. |
+| Result actions | Open source, copy URI/snippet/citation, JSON | Opens `/api/get` or local-file fallback, copies through browser clipboard when available, and shows raw JSON for debugging. | E2E exercises JSON, open, and copy URI. |
+| Clear | `#clearButton`, `#clearFiltersButton` | Clears query/filter/result state visibly. | E2E verifies query and results are cleared. |
 
-## Hidden until implemented
+## Removed until justified
 
-Boards, alerts, AI natural-language rewriting, and bottom investigation board controls are not visible in the generic public UI. They should only be reintroduced with real state, persistence, and E2E coverage.
+- Telemetry dashboard: operational status belongs in scripts/logs unless a small, tested status widget is needed.
+- AI assist / reranking controls: QMD modes are enough for the core UI.
+- Investigation boards, tabs, timeline, history, saved searches, share drawers, and settings rails: useful later only with explicit persistence semantics and test coverage.

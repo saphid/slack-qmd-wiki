@@ -5,929 +5,385 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QMD Search</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #07101a; --panel: rgba(15, 25, 39, .86); --panel-2: rgba(18, 30, 46, .78); --panel-3: rgba(8, 15, 25, .75);
-      --border: rgba(148, 163, 184, .16); --border-strong: rgba(148, 163, 184, .28);
-      --text: #f3f6fb; --muted: #9aa7bb; --muted-2: #718096; --blue: #6475ff; --blue-2: #91a0ff; --green: #22c55e; --purple: #8b5cf6; --red: #ff6b6b;
-      --shadow: 0 22px 80px rgba(0,0,0,.34);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+    :root { color-scheme: dark; --bg:#07101a; --panel:#101b2b; --panel2:#0b1420; --text:#eef4ff; --muted:#9aa7bb; --border:#263247; --accent:#7484ff; --bad:#ff7878; --warn:#facc15; --ok:#22c55e; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; color:var(--text); background: radial-gradient(circle at 20% 4%, rgba(82,103,255,.17), transparent 34rem), radial-gradient(circle at 80% 30%, rgba(14,165,233,.10), transparent 32rem), linear-gradient(135deg,#060b13,#0b1320 55%,#07101a); line-height:1.45; overflow-x:hidden; }
-    button,input,select{font:inherit} button{cursor:pointer} a{color:#9aa8ff;text-decoration:none} a:hover{text-decoration:underline}
-    .shell{display:grid;grid-template-columns:94px 1fr;min-height:100vh}.rail{position:sticky;top:0;height:100vh;border-right:1px solid var(--border);background:linear-gradient(180deg,rgba(14,24,39,.92),rgba(9,18,29,.94));backdrop-filter:blur(18px);display:flex;flex-direction:column;align-items:center;padding:1rem .45rem}.rail-logo{font-size:1.65rem;margin:.3rem 0 1rem;filter:drop-shadow(0 8px 20px rgba(99,102,241,.45))}.rail-nav{display:grid;gap:.35rem;width:100%}.rail-item{height:63px;border-radius:8px;color:#bdc7d8;display:grid;place-items:center;gap:.18rem;font-size:.76rem;border-left:3px solid transparent}.rail-item .icon{font-size:1.18rem}.rail-item.active{color:#9daaff;background:rgba(99,102,241,.15);border-left-color:var(--blue)}.rail-user{margin-top:auto;text-align:center;color:var(--muted);font-size:.68rem}.avatar-mini{width:42px;height:42px;border-radius:999px;display:grid;place-items:center;background:linear-gradient(135deg,#6b7280,#111827);font-weight:800;margin:0 auto .35rem;position:relative}.avatar-mini:after{content:'';position:absolute;right:1px;bottom:3px;width:8px;height:8px;border-radius:99px;background:var(--green);border:2px solid #111827}
-    .app{padding:1.2rem 1.55rem 1.8rem;max-width:1800px;width:100%}.topbar{display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center;margin-bottom:.75rem}.topbar .brand{grid-column:1;grid-row:1}.topbar .top-actions{grid-column:2;grid-row:1}.topbar .composer{grid-column:1/-1;grid-row:2}.brand{display:flex;align-items:center;gap:.65rem;padding-top:.4rem}.brand-mark{font-size:1.4rem}.beta{font-size:.62rem;border:1px solid rgba(145,160,255,.35);background:rgba(99,102,241,.18);color:#b7c2ff;border-radius:5px;padding:.08rem .28rem;margin-left:.35rem;vertical-align:middle}h1{margin:0;font-size:1.08rem;letter-spacing:-.01em}.subtitle{color:var(--muted);font-size:.86rem;margin-top:.1rem}.top-actions{display:flex;gap:.55rem;align-items:center;justify-content:flex-end}.ghost-btn,.icon-btn,button,input[type="text"],input[type="date"],input[type="number"],select{border:1px solid var(--border);background:rgba(10,17,28,.76);color:var(--text);border-radius:8px}.ghost-btn{padding:.58rem .78rem;color:#e3e8f4}.icon-btn{width:38px;height:38px;display:grid;place-items:center;padding:0}.composer{border:1px solid var(--border-strong);background:linear-gradient(180deg,rgba(16,27,43,.86),rgba(12,22,36,.86));border-radius:9px;box-shadow:inset 0 1px rgba(255,255,255,.04)}form{display:grid;gap:.65rem}.search-row{display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:.55rem;padding:.55rem .65rem}.query-wrap{position:relative;display:flex;align-items:center;gap:.55rem;min-width:0}.query-icon{color:var(--muted);font-size:1.1rem}input[type="search"]{width:100%;border:0;background:transparent;color:var(--text);outline:0;font-size:.98rem;padding:.35rem 0}.ai-pill{display:none;border:0;background:rgba(148,163,184,.16);color:#d9e1ff;border-radius:8px;padding:.45rem .6rem}.clear-query{border:0;background:transparent;color:var(--muted);font-size:1.2rem;padding:.2rem}.search-submit{border:0;border-radius:8px;padding:.72rem 1.1rem;background:linear-gradient(135deg,#6373ff,#5261f1);color:#fff;font-weight:800;box-shadow:0 8px 22px rgba(83,97,240,.34)}.kbd{font-size:.78rem;color:#cbd5e1;background:rgba(148,163,184,.16);border-radius:6px;padding:.16rem .34rem}.query-token-row{display:flex;gap:.45rem;flex-wrap:wrap;padding:0 .65rem .45rem}#decoratorChips{display:none}.nl-row{border-top:1px solid var(--border);padding:.45rem .7rem;color:#9faad9;font-size:.82rem}.nl-row button{border:0;background:transparent;color:#aab6ff}.chip,.pill,.facet-chip{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--border-strong);border-radius:999px;padding:.28rem .56rem;color:#dce5f7;background:rgba(17,27,42,.82);font-size:.82rem}.chip{cursor:pointer}.token-remove{opacity:.8}.validation{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.1rem .65rem .55rem}.validation:empty{display:none}.fallback-warning{color:#facc15;border-color:rgba(250,204,21,.35);background:rgba(250,204,21,.09)}.validation .ok{color:var(--green);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.09)}.validation .bad{color:#ff9b9b;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1)}
-    .control-strip{display:flex;align-items:center;justify-content:space-between;gap:1rem;border:1px solid var(--border);border-radius:8px;background:rgba(8,15,25,.64);padding:.5rem .8rem;margin:.6rem 0}.mode-segments{display:flex;gap:.25rem;align-items:center}.mode-pill{border:1px solid transparent;background:transparent;color:#d8dfec;padding:.48rem .7rem;border-radius:7px}.mode-pill.active{background:linear-gradient(135deg,rgba(99,115,255,.8),rgba(79,95,220,.8));color:white}.tiny-badge{font-size:.62rem;color:#c8d0ff;background:rgba(148,163,184,.18);padding:.08rem .28rem;border-radius:5px;margin-left:.25rem}.control-strip label{display:inline-flex;gap:.4rem;align-items:center;color:var(--muted);font-size:.86rem}.control-strip select,.control-strip input[type="number"]{padding:.45rem .55rem}.rerank{margin-left:auto}.why-link{color:#9ba9ff;background:transparent;border:0}.suggestions{display:flex;gap:.45rem;align-items:center;color:var(--muted);font-size:.82rem}.suggestions button{padding:.35rem .55rem}.layout{display:grid;grid-template-columns:320px minmax(620px,1fr);gap:1.3rem;align-items:start}.panel,aside,.detail-panel,.results-panel,.telemetry{border:1px solid var(--border);border-radius:9px;background:linear-gradient(180deg,rgba(17,29,45,.78),rgba(10,19,31,.78));box-shadow:var(--shadow)}aside{position:sticky;top:.75rem;padding:.85rem}.side-section{border-bottom:1px solid var(--border);padding-bottom:.9rem;margin-bottom:.9rem}.side-section:last-child{border-bottom:0;margin-bottom:0}.side-title{font-weight:850;margin-bottom:.5rem}.source-slider{display:grid;grid-template-columns:88px 1fr 42px;gap:.55rem;align-items:center;margin:.65rem 0}.source-slider input{width:100%;accent-color:var(--blue)}aside label:not(.source-option){display:grid;gap:.35rem;margin:.65rem 0;color:#b8c2d2;font-size:.84rem}.source-option{display:flex;gap:.55rem;align-items:center;margin:.5rem 0;font-weight:650}aside input[type="text"],aside input[type="date"],aside select{width:100%;padding:.55rem}.filter-chip-row,.avatar-row,.quick-row{display:flex;gap:.35rem;flex-wrap:wrap;margin:.45rem 0}.avatar-dot{width:22px;height:22px;border-radius:99px;display:grid;place-items:center;background:linear-gradient(135deg,#6b7280,#1f2937);font-size:.68rem}.quick-row button{padding:.36rem .55rem}.quick-row button.active{background:var(--blue);color:white}.date-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:.35rem;align-items:center}.clear-wide{width:100%;padding:.62rem;margin-top:.6rem}.main-col{display:grid;gap:.65rem;min-width:0}.telemetry{padding:.8rem}.telemetry summary{cursor:pointer;font-weight:850}.telemetry-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem;margin-top:.65rem}.stat-card{border:1px solid var(--border);border-radius:9px;padding:.65rem;background:rgba(8,14,23,.55)}.stat-label{color:var(--muted);font-size:.76rem}.stat-value{font-size:1.12rem;font-weight:850}.bar-list{display:grid;gap:.35rem;margin-top:.5rem}.bar-row{display:grid;grid-template-columns:7.5rem 1fr 4rem;gap:.45rem;align-items:center;font-size:.78rem}.bar-track{height:.55rem;border-radius:999px;background:rgba(148,163,184,.14);overflow:hidden}.bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),#22c55e)}.telemetry-panels{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.65rem}.mini-log{max-height:10rem;font-size:.75rem}.results-panel{overflow:hidden}.summary-line{display:flex;align-items:center;gap:.65rem;padding:.8rem .95rem;border-bottom:1px solid var(--border)}.confidence{color:var(--green);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25)}.results-head{display:flex;align-items:center;justify-content:space-between;padding:.75rem .95rem;border-bottom:1px solid var(--border)}.tabs{display:flex;gap:1rem;align-items:center}.tab{color:var(--muted);background:transparent;border:0;padding:.35rem 0;border-radius:0}.tab.active{color:var(--blue-2);border-bottom:2px solid var(--blue-2)}.group-controls{display:flex;gap:.55rem;align-items:center;color:var(--muted)}.view-toggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}.view-toggle button{border:0;border-radius:0;width:36px;height:34px;background:transparent}.view-toggle button.active{background:rgba(148,163,184,.14)}.facet-strip{display:flex;gap:.45rem;padding:.65rem .95rem;border-bottom:1px solid var(--border);align-items:center}.result-facets{border-bottom:1px solid var(--border);padding:.7rem .95rem;background:rgba(12,20,32,.62)}.result-facets[hidden]{display:none}.facet-toolbar{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}.facet-toolbar-title{font-weight:850}.facet-dropdown{position:relative}.facet-dropdown summary{list-style:none;cursor:pointer;border:1px solid var(--border);border-radius:999px;padding:.35rem .65rem;background:rgba(8,14,23,.85);font-weight:750}.facet-dropdown summary::-webkit-details-marker{display:none}.facet-panel{position:absolute;z-index:7;top:calc(100% + .45rem);left:0;width:min(34rem,78vw);max-height:22rem;overflow:auto;padding:.7rem;border:1px solid var(--border);border-radius:12px;background:#0c1420;box-shadow:0 16px 40px rgba(0,0,0,.38)}.facet-values,.active-facets{display:flex;flex-wrap:wrap;gap:.35rem}.active-facets{margin-top:.55rem}.active-facets:empty{display:none}.facet-active-chip{border-color:var(--blue);color:white;background:var(--blue)}.facet-count{opacity:.75;margin-left:.25rem}#results{padding:.8rem}.grid-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:.65rem}.grid-results .result{margin:0;min-height:100%}.grid-results .slack-message{grid-template-columns:1.8rem 1fr}.grid-results .actions{display:none}.result{border:1px solid var(--border);border-radius:12px;padding:.85rem;margin:0 0 .65rem;background:rgba(8,14,23,.48);position:relative}.result:hover,.result.selected{border-color:rgba(145,160,255,.45);background:rgba(18,30,48,.72)}.result h3{margin:.35rem 0 .22rem;font-size:1rem}.badges{display:flex;gap:.38rem;flex-wrap:wrap}.path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all;color:var(--muted);font-size:.78rem}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(3,7,13,.62);padding:.7rem;border-radius:8px;max-height:22rem;overflow:auto;border:1px solid var(--border)}mark{background:#fde047;color:#1f1a00;font-weight:850;padding:0 .08em;border-radius:.18em}.actions{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem}.actions button,#refreshTelemetry,#clearFilters,.result-facets button{padding:.42rem .65rem}.slack-thread{display:grid;gap:.55rem;margin-top:.65rem}.slack-message{display:grid;grid-template-columns:2.2rem 1fr;gap:.55rem;padding:.6rem;border-radius:10px;background:rgba(12,20,32,.74);border:1px solid var(--border)}.avatar{width:2.1rem;height:2.1rem;border-radius:.58rem;display:grid;place-items:center;font-weight:850;color:white;background:linear-gradient(135deg,#6d5df6,#4f46e5);text-transform:uppercase}.slack-head{display:flex;flex-wrap:wrap;gap:.35rem;align-items:baseline}.slack-author{font-weight:850;background:#facc15;color:#111827;padding:0 .18rem;border-radius:.16rem}.slack-time{color:var(--muted);font-size:.82rem}.slack-body{white-space:pre-wrap;overflow-wrap:anywhere}.thread-badge{color:#b59cff;border-color:rgba(139,92,246,.45);background:rgba(139,92,246,.12)}.source-line{color:var(--muted);font-size:.76rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.doc-line{margin:.18rem 0}.doc-heading{font-weight:850}.doc-list{margin-left:1rem}.detail-panel{display:none}.detail-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem}.detail-actions{display:flex;gap:.35rem}.detail-actions button{width:34px;height:32px;padding:0}.detail-card{border:1px solid var(--border);background:rgba(8,14,23,.48);border-radius:10px;padding:.8rem;margin:.65rem 0}.why-list{display:grid;gap:.25rem;color:#b9c4d6;font-size:.84rem}.why-list .ok{color:var(--green)}.related-item{display:flex;gap:.55rem;align-items:start;margin:.5rem 0;color:#dce5f7}.board-bar{display:none}.board-left,.board-right,.board-metrics{display:flex;gap:.75rem;align-items:center}.board-select{min-width:220px}.autocomplete{position:absolute;left:0;right:0;top:calc(100% + .6rem);z-index:8;border:1px solid var(--border);border-radius:12px;background:#0c1420;box-shadow:0 18px 50px rgba(0,0,0,.4);overflow:hidden}.autocomplete[hidden]{display:none}.autocomplete button{display:grid;grid-template-columns:1fr auto;width:100%;border:0;border-radius:0;text-align:left;background:transparent;padding:.6rem .8rem}.autocomplete button:hover,.autocomplete button.active{background:rgba(99,102,241,.17)}.autocomplete .sub{color:var(--muted);font-size:.82rem}.autocomplete-empty{padding:.75rem .85rem;color:var(--muted)}.dialog-body{white-space:normal;display:grid;gap:.7rem}.dialog-list{display:grid;gap:.55rem}.dialog-item{border:1px solid var(--border);border-radius:10px;padding:.65rem;background:rgba(8,14,23,.55);display:grid;gap:.4rem}.dialog-actions{display:flex;gap:.45rem;flex-wrap:wrap}.dialog-actions button,.dialog-item button{padding:.38rem .6rem}.field-row{display:grid;gap:.35rem}.field-row input{padding:.55rem}.hidden-feature{display:none!important}dialog{width:min(1100px,94vw);max-height:88vh;border-radius:12px;border:1px solid var(--border);background:#0c1420;color:var(--text)}dialog pre{max-height:68vh}@media(max-width:1300px){.layout{grid-template-columns:300px 1fr}.telemetry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:900px){.shell{grid-template-columns:1fr}.rail{display:none}.app{padding:1rem}.topbar{grid-template-columns:1fr}.layout{grid-template-columns:1fr}.telemetry-panels{grid-template-columns:1fr}}
+    body { margin: 0; min-height: 100vh; color: var(--text); background: radial-gradient(circle at 20% 0, rgba(116,132,255,.18), transparent 28rem), linear-gradient(135deg,#060b13,#0b1320); line-height: 1.45; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; border: 1px solid var(--border); background: #182235; color: var(--text); border-radius: .55rem; padding: .58rem .75rem; }
+    button.primary { border: 0; background: linear-gradient(135deg,#6978ff,#4f5fe8); font-weight: 800; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    input, select { width: 100%; border: 1px solid var(--border); border-radius: .55rem; background: #07111d; color: var(--text); padding: .6rem .7rem; }
+    label { display: grid; gap: .35rem; color: #c4cedd; font-size: .9rem; }
+    .app { width: min(1180px, calc(100vw - 2rem)); margin: 0 auto; padding: 1.3rem 0 2rem; }
+    header { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+    h1 { margin: 0; font-size: 1.4rem; letter-spacing: -.02em; }
+    .subtle { color: var(--muted); }
+    .panel { border: 1px solid var(--border); background: rgba(16,27,43,.88); border-radius: .9rem; box-shadow: 0 22px 70px rgba(0,0,0,.28); }
+    .search-panel { padding: .9rem; display: grid; gap: .75rem; }
+    .query-row { display: grid; grid-template-columns: 1fr auto auto; gap: .6rem; }
+    .query-box { position: relative; min-width: 0; }
+    .suggest-box { position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + .35rem); border: 1px solid var(--border); border-radius: .7rem; background: #0b1420; box-shadow: 0 18px 50px rgba(0,0,0,.4); overflow: hidden; }
+    .suggest-box[hidden] { display: none; }
+    .suggest-box button { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; border: 0; border-radius: 0; background: transparent; text-align: left; padding: .55rem .7rem; }
+    .suggest-box button:hover, .suggest-box button.active { background: rgba(116,132,255,.18); }
+    .suggest-sub { color: var(--muted); font-size: .82rem; padding-left: .65rem; }
+    .suggest-empty { padding: .65rem .75rem; color: var(--muted); }
+    .controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+    .collections { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; }
+    .collections label { display: inline-flex; width: auto; grid-auto-flow: column; align-items: center; gap: .35rem; }
+    .collections input { width: auto; }
+    .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .65rem; }
+    .status { margin: .9rem 0; padding: .75rem .9rem; border: 1px solid var(--border); border-radius: .7rem; background: rgba(7,17,29,.8); }
+    .status.warn { border-color: rgba(250,204,21,.5); color: var(--warn); }
+    .status.bad { border-color: rgba(255,120,120,.55); color: var(--bad); }
+    .results { display: grid; gap: .75rem; }
+    .result { padding: .9rem; }
+    .result h2 { margin: .5rem 0 .25rem; font-size: 1.05rem; }
+    .badges { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .badge { border: 1px solid var(--border); background: #0b1420; border-radius: 999px; padding: .18rem .5rem; color: #d8e2f2; font-size: .78rem; }
+    .path { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; overflow-wrap: anywhere; }
+    pre { margin: .7rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--border); border-radius: .65rem; background: #050b13; padding: .75rem; max-height: 22rem; overflow: auto; }
+    mark { background: #fde047; color: #1f1a00; border-radius: .15rem; padding: 0 .07rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .75rem; }
+    dialog { width: min(980px, 94vw); max-height: 86vh; color: var(--text); background: #0b1420; border: 1px solid var(--border); border-radius: .8rem; }
+    dialog::backdrop { background: rgba(0,0,0,.55); }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    @media (max-width: 860px) { header, .query-row, .controls, .filters { grid-template-columns: 1fr; display: grid; } .controls, .filters { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .controls, .filters { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-<div class="shell">
-  <nav class="rail" aria-label="Primary"><div class="rail-logo">💠</div><div class="rail-nav"><div class="rail-item active"><div class="icon">⌕</div><div>Search</div></div><button type="button" class="rail-item" data-nav-action="saved"><div class="icon">▱</div><div>Saved</div></button><button type="button" class="rail-item" data-nav-action="history"><div class="icon">◴</div><div>History</div></button><button type="button" class="rail-item" data-nav-action="settings"><div class="icon">⚙</div><div>Settings</div></button></div><div class="rail-user"><div class="avatar-mini">QS</div><div>QMD user⌄</div></div></nav>
-  <div class="app">
-    <header class="topbar"><div class="brand"><div class="brand-mark">💠</div><div><h1>QMD Search <span class="beta">BETA</span></h1></div></div>
-      <form id="searchForm" class="composer"><div class="search-row"><span class="query-icon">⌕</span><div class="query-wrap"><input id="query" type="search" placeholder="alex cameras tracking in:#random after:2025-01-01" autofocus required autocomplete="off" spellcheck="false" /><div id="queryAutocomplete" class="autocomplete" hidden></div></div><button class="ai-pill" type="button" id="aiAssist" hidden>AI</button><button class="clear-query" type="button" id="clearQuery">×</button><button class="search-submit" type="submit">Search <span class="kbd">⌘K</span></button></div><div id="queryTokens" class="query-token-row"></div><div class="nl-row">◎ Natural language: <span id="nlInterpretation">Use structured filters or type naturally.</span> → <button type="button" id="showOriginal">Query details</button></div><div id="queryValidation" class="validation hint"></div><div id="decoratorChips" class="query-token-row"></div></form>
-      <div class="top-actions"><button class="ghost-btn" id="clearAllTop" type="button">⌫ Clear all</button><button class="ghost-btn" id="saveSearch" type="button">▱ Save search</button><button class="ghost-btn" id="shareSearch" type="button">↔ Share</button><button class="icon-btn" id="historyButton" type="button" title="Search history">◴</button><button class="icon-btn" id="docsButton" type="button" title="Inspect">▧</button><button class="icon-btn" id="moreMenu" type="button" title="More">⋮</button></div>
+  <main class="app">
+    <header>
+      <div>
+        <h1>QMD Search</h1>
+        <div class="subtle">Local search over Slack chunks, raw Slack markdown, and wiki pages.</div>
+      </div>
+      <button id="healthButton" type="button">Check service</button>
     </header>
-    <div class="control-strip"><div class="mode-segments"><button class="mode-pill active" type="button" data-mode="lex">Lexical (BM25)</button><button class="mode-pill" type="button" data-mode="vec">Semantic (Vector)</button><button class="mode-pill" type="button" data-mode="hybrid">Hybrid <span class="tiny-badge">Best balance</span></button><input id="mode" type="hidden" value="lex" /></div><label>Results <select id="limit"><option>10</option><option selected>25</option><option>50</option><option>100</option><option>250</option><option>500</option></select></label><label>Sort <select id="sort"><option value="relevance" selected>Relevance</option><option value="date-desc">Newest first</option><option value="date-asc">Oldest first</option><option value="channel">Channel/path</option><option value="corpus">Corpus</option></select></label><label class="rerank">AI Rerank <input id="rerank" type="checkbox" checked /></label><button class="why-link" id="whyResults" type="button">ⓘ Why these results?</button><div class="suggestions"><span>Did you mean:</span><button type="button" data-suggest="camera tracking">camera tracking</button><button type="button" data-suggest="cameras tracking">cameras tracking</button></div></div>
-    <main class="layout">
-      <aside><div class="side-section"><div class="side-title">Sources</div><label class="source-option"><input type="checkbox" name="collection" value="chunks" checked /> 🌈 Slack</label><div class="source-slider"><span>Slack</span><input id="slackWeight" type="range" min="0" max="100" value="70"/><span id="slackWeightLabel">70%</span></div><label class="source-option"><input type="checkbox" name="collection" value="wiki" checked /> 💎 Obsidian</label><div class="source-slider"><span>Obsidian</span><input id="obsidianWeight" type="range" min="0" max="100" value="30"/><span id="obsidianWeightLabel">30%</span></div><label class="source-option"><input type="checkbox" name="collection" value="raw" /> 📄 Raw Slack</label></div>
-        <div class="side-section"><div class="side-title">Slack filters</div><label>Channels <input id="channel" type="text" list="channelOptions" placeholder="Search channels…" /></label><div id="channelChips" class="filter-chip-row"></div><label>DM scope <select id="includeDms"><option value="">All conversations</option><option>Exclude DMs</option><option>Only selected users</option></select></label><label>Users <div class="filter-chip-row"><span class="chip" id="selectedUserChip">No user selected</span><button type="button" class="chip" id="addUserChip">+ Add</button></div><div class="avatar-row" id="userAvatarRow"></div><input id="user" type="text" list="userOptions" placeholder="Select users…" /></label><label>Date range <div class="quick-row"><button type="button" data-range="1">24h</button><button type="button" data-range="7">7d</button><button type="button" data-range="30">30d</button><button type="button" data-range="90">90d</button><button type="button" data-range="custom" class="active">Custom</button></div><div class="date-grid"><input id="dateFrom" type="date" /><span>→</span><input id="dateTo" type="date" /></div></label></div>
-        <div class="side-section"><div class="side-title">Obsidian filters</div><label>Tags <input id="tagFilter" type="text" placeholder="Search tags…" /></label><div class="filter-chip-row" id="tagChips"><span class="hint">No wiki tag facets loaded.</span></div><label>Folders <select id="folderFilter"><option>Search folders…</option></select></label></div>
-        <details class="side-section"><summary class="side-title">Advanced</summary><label>Filter result text <input id="within" type="text" placeholder="term within results" /></label></details><button type="button" id="clearFilters" class="clear-wide">Clear all filters</button>
-      </aside>
-      <section class="main-col"><details id="telemetry" class="telemetry"><summary>Telemetry, stats &amp; graphs</summary><div class="row" style="justify-content:space-between;margin-top:.75rem"><h2>Slack / QMD / Wiki telemetry</h2><button type="button" id="refreshTelemetry">Refresh telemetry</button></div><div id="telemetryBody" class="hint">Loading Slack/QMD/wiki stats…</div></details><section class="results-panel"><div class="summary-line"><div id="status" class="status">Ready.</div><span id="slackShare" class="pill">Slack 0</span><span id="obsidianShare" class="pill">Obsidian 0</span><span class="pill confidence">High confidence</span></div><div class="results-head"><div class="tabs"><button type="button" class="tab active" data-result-tab="all">All <span>0</span></button><button type="button" class="tab" data-result-tab="slack">🌈 Slack <span>0</span></button><button type="button" class="tab" data-result-tab="obsidian">💎 Obsidian <span>0</span></button><button type="button" class="tab" data-result-tab="threads">Threads <span>0</span></button><button type="button" class="tab" data-result-tab="people">People <span>0</span></button><button type="button" class="tab" data-result-tab="files">Files <span>0</span></button></div><div class="group-controls"><div class="view-toggle"><button type="button" class="active" data-view="list">☷</button><button type="button" data-view="grid">▦</button></div></div></div><div class="facet-strip"><button class="chip" type="button" data-facet-action="top">Top facets</button><button class="chip" type="button" data-facet-action="users">Users</button><button class="chip" type="button" data-facet-action="channels">Channels</button><button class="chip" type="button" data-facet-action="topics">Topics</button><button class="chip" type="button" data-facet-action="dates">Dates⌄</button><button class="chip" type="button" id="timelineView">Timeline view ›</button></div><div id="resultFacets" class="result-facets" hidden></div><div id="results"></div></section></section>
-      <aside id="detailPane" class="detail-panel" hidden><div class="hint">Select a result to inspect thread details, why it matched, and related results.</div></aside>
-    </main>
-  </div>
-</div>
-<div class="board-bar"><div class="board-left"><strong>Investigation board</strong><select id="boardSelect" class="board-select"><option>Cameras tracking research</option><option>New investigation board</option></select></div><div class="board-metrics"><span id="boardItems">0 items</span><span id="boardNotes">0 notes</span><span id="boardMessages">0 messages</span></div><div class="board-right"><button type="button" id="openBoard">⊙ Open board</button><button type="button" id="exportBoard">⇩ Export</button><button type="button" id="summarizeBoard">✦ Summarize results</button></div></div>
-<datalist id="channelOptions"></datalist><datalist id="userOptions"></datalist><dialog id="docDialog"><form method="dialog"><button style="float:right">Close</button></form><h2 id="docTitle">Document</h2><div id="docBody" class="dialog-body">Loading…</div></dialog>
+
+    <form id="searchForm" class="panel search-panel">
+      <div class="query-row">
+        <div class="query-box">
+          <input id="query" type="search" placeholder="Search terms, or user:alex in:#general after:2026-01-01" autocomplete="off" autofocus required />
+          <div id="querySuggest" class="suggest-box" hidden></div>
+        </div>
+        <button id="clearButton" type="button">Clear</button>
+        <button class="primary" type="submit">Search</button>
+      </div>
+      <div class="controls">
+        <label>Mode
+          <select id="mode"><option value="lex">Lexical</option><option value="hybrid">Hybrid</option><option value="vec">Vector</option></select>
+        </label>
+        <label>Results
+          <select id="limit"><option>10</option><option selected>25</option><option>50</option><option>100</option><option>250</option><option>500</option></select>
+        </label>
+        <label>Sort
+          <select id="sort"><option value="relevance" selected>Relevance</option><option value="date-desc">Newest</option><option value="date-asc">Oldest</option><option value="channel">Channel/path</option><option value="corpus">Corpus</option></select>
+        </label>
+        <label>Within results
+          <input id="within" type="text" placeholder="optional post-filter" />
+        </label>
+      </div>
+      <div class="collections" aria-label="Collections">
+        <span class="subtle">Collections:</span>
+        <label><input type="checkbox" name="collection" value="chunks" checked /> Slack chunks</label>
+        <label><input type="checkbox" name="collection" value="wiki" checked /> Wiki</label>
+        <label><input type="checkbox" name="collection" value="raw" /> Raw Slack</label>
+      </div>
+      <div class="filters">
+        <label>Channel
+          <input id="channel" type="text" list="channelOptions" placeholder="general" />
+        </label>
+        <label>User
+          <input id="user" type="text" list="userOptions" placeholder="Alex" />
+        </label>
+        <label>After
+          <input id="dateFrom" type="date" />
+        </label>
+        <label>Before
+          <input id="dateTo" type="date" />
+        </label>
+        <label>&nbsp;
+          <button id="clearFiltersButton" type="button">Clear filters</button>
+        </label>
+      </div>
+      <datalist id="channelOptions"></datalist>
+      <datalist id="userOptions"></datalist>
+    </form>
+
+    <div id="status" class="status">Ready.</div>
+    <section id="results" class="results" aria-live="polite"></section>
+  </main>
+
+  <dialog id="docDialog">
+    <div class="dialog-head"><h2 id="docTitle">Document</h2><button id="closeDialog" type="button">Close</button></div>
+    <div id="docBody"></div>
+  </dialog>
+
 <script>
-const $ = (sel) => document.querySelector(sel);
+const $ = (selector) => document.querySelector(selector);
 const form = $('#searchForm');
 const statusEl = $('#status');
 const resultsEl = $('#results');
-const resultFacetsEl = $('#resultFacets');
 const dialog = $('#docDialog');
 const docTitle = $('#docTitle');
 const docBody = $('#docBody');
 let lastResults = [];
-let allResults = [];
-let lastSearchMeta = null;
-let resultFacetFilters = {corpus: new Set(), channel: new Set(), date: new Set(), user: new Set()};
-let activeHighlightTerms = [];
-let facets = {channels: [], users: [], decorators: []};
-let userLookup = new Map();
-let channelLookup = new Map();
-let autocompleteState = {items: [], active: 0, context: null};
+let highlightTerms = [];
+let facetState = {users: [], channels: []};
+let suggestState = {items: [], active: 0, context: null};
 
-function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function escapeRegex(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-function buildHighlightTerms() {
-  const stop = new Set(['and','or','the','for','with','from','that','this','what','when','where','how','why','did','does','are','was','were','into','onto','about','mode','sort','corpus','after','before','channel','user']);
-  const terms = [];
-  const sources = [$('#query').value, $('#channel').value, $('#user').value, $('#within').value];
-  for (let q of sources) {
-    q = q.replace(/^(lex|vec|hyde|intent|expand):/gmi, ' ')
-         .replace(/(^|\s)(from|user|in|channel|after|before|on|corpus|mode|sort):/gi, ' ');
-    for (const match of q.matchAll(/"([^"]+)"|'([^']+)'|([^\s]+)/g)) {
-      const raw = (match[1] || match[2] || match[3] || '').replace(/^-/, '').trim();
-      const cleaned = raw.replace(/^[^\p{L}\p{N}#@_.:-]+|[^\p{L}\p{N}#@_.:-]+$/gu, '');
-      if (cleaned.length >= 2 && !stop.has(cleaned.toLowerCase())) terms.push(cleaned.replace(/^#/, ''));
-    }
-  }
-  return [...new Map(terms.map((t) => [t.toLowerCase(), t])).values()].sort((a, b) => b.length - a.length).slice(0, 30);
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 }
-function highlight(s) {
-  const html = escapeHtml(s);
-  if (!activeHighlightTerms.length) return html;
-  const pattern = activeHighlightTerms.map((term) => escapeRegex(escapeHtml(term))).join('|');
-  if (!pattern) return html;
-  return html.replace(new RegExp(`(${pattern})`, 'gi'), '<mark>$1</mark>');
+function escapeRegex(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function selectedCollections() {
+  const values = [...document.querySelectorAll('input[name="collection"]:checked')].map((input) => input.value);
+  return values.length ? values.join(',') : 'all';
 }
-function selectedCollections() { const values = [...document.querySelectorAll('input[name="collection"]:checked')].map(i => i.value); return values.length ? values.join(',') : 'all'; }
-function params() {
-  const p = new URLSearchParams({ q: $('#query').value, mode: $('#mode').value, n: $('#limit').value, sort: $('#sort').value, collection: selectedCollections() });
-  for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within']) if ($('#' + id).value) p.set(id, $('#' + id).value);
-  if ($('#rerank').checked) p.set('rerank', '1');
-  return p;
-}
-function normName(s) { return String(s || '').trim().replace(/^#/, '').toLowerCase(); }
-function quoteDecoratorValue(s) { return /\s/.test(s) ? '"' + String(s).replaceAll('\"', '\\"') + '"' : String(s); }
-function decoratorType(key) { return ['from', 'user'].includes(String(key).toLowerCase()) ? 'user' : 'channel'; }
-function parseSearchDecorators(value) {
-  const out = [];
-  const re = /(^|\s)(from|user|in|channel):("([^"]*)"|'([^']*)'|([^\s]*))/gi;
-  for (const m of value.matchAll(re)) {
-    const key = m[2].toLowerCase();
-    const val = (m[4] ?? m[5] ?? m[6] ?? '').trim();
-    const type = decoratorType(key);
-    out.push({key, type, value: val, start: m.index + (m[1] || '').length, end: m.index + m[0].length});
-  }
-  return out;
-}
-function validateSearchDecorators() {
-  const tokens = parseSearchDecorators($('#query').value);
-  const validation = $('#queryValidation');
-  const messages = [];
-  const invalid = [];
-  for (const token of tokens) {
-    if (!token.value) {
-      messages.push('<span class="pill pending">' + escapeHtml(token.key) + ': choose a ' + token.type + '</span>');
-      continue;
-    }
-    if (token.type === 'user') {
-      const hit = userLookup.get(normName(token.value));
-      if (hit) messages.push('<span class="pill ok">✓ ' + escapeHtml(token.key + ':' + quoteDecoratorValue(hit.name) + (hit.realName && normName(hit.realName) !== normName(hit.name) ? ' — ' + hit.realName : '')) + '</span>');
-      else if ((facets.users || []).length) { invalid.push(token); messages.push('<span class="pill bad">Unknown user: ' + escapeHtml(token.value) + '</span>'); }
-      else messages.push('<span class="pill pending">No local user facets loaded; searching free text</span>');
-    } else {
-      const hit = channelLookup.get(normName(token.value));
-      if (hit) messages.push('<span class="pill ok">✓ ' + escapeHtml(token.key + ':#' + hit.name) + '</span>');
-      else if ((facets.channels || []).length) { invalid.push(token); messages.push('<span class="pill bad">Unknown channel: ' + escapeHtml(token.value) + '</span>'); }
-      else messages.push('<span class="pill pending">No local channel facets loaded; searching free text</span>');
-    }
-  }
-  validation.innerHTML = messages.length ? messages.join('') : ''; validation.hidden = !messages.length;
-  return {tokens, invalid};
-}
-function currentDecoratorContext() {
+function normalizeFacet(value) { return String(value || '').trim().replace(/^#/, '').toLowerCase(); }
+function quoteDecoratorValue(value) { return /\s/.test(String(value)) ? `"${String(value).replaceAll('"', '\\"')}"` : String(value); }
+function currentSuggestContext() {
   const input = $('#query');
   const cursor = input.selectionStart || 0;
   const before = input.value.slice(0, cursor);
-  const m = before.match(/(^|\s)(from|user|in|channel):("([^"]*)|'([^']*)|([^\s"]*))$/i);
-  if (!m) return null;
-  const key = m[2].toLowerCase();
-  const typed = (m[4] ?? m[5] ?? m[6] ?? '').trim();
-  const tokenStart = before.length - m[0].length + (m[1] || '').length;
-  return {key, type: decoratorType(key), typed, start: tokenStart, end: cursor};
+  const match = before.match(/(^|\s)(from|user|in|channel):("([^"]*)|'([^']*)|([^\s"]*))$/i);
+  if (!match) return null;
+  const key = match[2].toLowerCase();
+  const type = key === 'from' || key === 'user' ? 'user' : 'channel';
+  const typed = (match[4] ?? match[5] ?? match[6] ?? '').trim();
+  return {key, type, typed, start: before.length - match[0].length + (match[1] || '').length, end: cursor};
 }
-function suggestionsForContext(ctx) {
-  if (!ctx) return [];
-  const q = normName(ctx.typed);
-  const source = ctx.type === 'user' ? facets.users : facets.channels;
+function facetSuggestionText(item, type) {
+  if (type === 'channel') return '#' + item.name;
+  return item.realName && normalizeFacet(item.realName) !== normalizeFacet(item.name) ? `${item.name} — ${item.realName}` : item.name;
+}
+function suggestionsForContext(context) {
+  if (!context) return [];
+  const typed = normalizeFacet(context.typed);
+  const source = context.type === 'user' ? facetState.users : facetState.channels;
   return source
     .filter((item) => {
-      const name = normName(item.name); const id = normName(item.id);
-      return !q || name.startsWith(q) || name.includes(q) || id.startsWith(q);
+      const fields = [item.name, item.id, item.realName, item.slackName].map(normalizeFacet).filter(Boolean);
+      return !typed || fields.some((field) => field.startsWith(typed) || field.includes(typed));
     })
     .sort((a, b) => {
-      const an = normName(a.name), bn = normName(b.name);
-      const as = q && an.startsWith(q) ? 0 : 1;
-      const bs = q && bn.startsWith(q) ? 0 : 1;
-      return as - bs || (b.count || 0) - (a.count || 0) || a.name.localeCompare(b.name);
+      const an = normalizeFacet(a.name);
+      const bn = normalizeFacet(b.name);
+      const ap = typed && an.startsWith(typed) ? 0 : 1;
+      const bp = typed && bn.startsWith(typed) ? 0 : 1;
+      return ap - bp || (b.count || 0) - (a.count || 0) || an.localeCompare(bn);
     })
-    .slice(0, 10);
+    .slice(0, 12);
 }
-function renderAutocomplete() {
-  const box = $('#queryAutocomplete');
-  const ctx = currentDecoratorContext();
-  const items = suggestionsForContext(ctx);
-  autocompleteState = {items, active: 0, context: ctx};
-  if (!ctx) { box.hidden = true; box.innerHTML = ''; return; }
-  if (!items.length) { box.hidden = false; box.innerHTML = `<div class="autocomplete-empty">No local ${ctx.type} facets found. Run/import Slack metadata for real suggestions.</div>`; return; }
+function renderQuerySuggest() {
+  const box = $('#querySuggest');
+  const context = currentSuggestContext();
+  const items = suggestionsForContext(context);
+  suggestState = {items, active: 0, context};
+  if (!context) { box.hidden = true; box.innerHTML = ''; return; }
+  if (!items.length) {
+    const loaded = context.type === 'user' ? facetState.users.length : facetState.channels.length;
+    box.hidden = false;
+    box.innerHTML = `<div class="suggest-empty">${loaded ? `No matching ${context.type} suggestions.` : `Loading ${context.type} suggestions…`}</div>`;
+    return;
+  }
   box.hidden = false;
-  box.innerHTML = items.map((item, i) => {
-    const value = ctx.type === 'channel' ? '#' + item.name : (item.label || item.name);
-    const sub = ctx.type === 'user'
-      ? [item.slackName ? '@' + item.slackName : '', item.id, item.title || '', item.count ? item.count + ' messages' : ''].filter(Boolean).join(' · ')
-      : [item.id, item.count ? item.count + ' docs/messages' : '', item.type || ''].filter(Boolean).join(' · ');
-    return '<button type="button" class="' + (i === 0 ? 'active' : '') + '" data-index="' + i + '"><span>' + escapeHtml(value) + '</span><span class="sub">' + escapeHtml(sub) + '</span></button>';
+  box.innerHTML = items.map((item, index) => {
+    const label = context.type === 'channel' ? '#' + item.name : item.name;
+    const sub = context.type === 'channel'
+      ? [item.id, item.count ? `${item.count} docs/messages` : ''].filter(Boolean).join(' · ')
+      : [item.realName && normalizeFacet(item.realName) !== normalizeFacet(item.name) ? item.realName : '', item.slackName ? '@' + item.slackName : '', item.id, item.count ? `${item.count} messages` : ''].filter(Boolean).join(' · ');
+    return `<button type="button" class="${index === 0 ? 'active' : ''}" data-suggest-index="${index}"><span>${escapeHtml(label)}</span><span class="suggest-sub">${escapeHtml(sub)}</span></button>`;
   }).join('');
 }
-function paintAutocompleteActive() {
-  [...$('#queryAutocomplete').querySelectorAll('button[data-index]')].forEach((button, i) => button.classList.toggle('active', i === autocompleteState.active));
+function paintQuerySuggestActive() {
+  [...$('#querySuggest').querySelectorAll('button[data-suggest-index]')].forEach((button, index) => button.classList.toggle('active', index === suggestState.active));
 }
-function applyAutocomplete(index = autocompleteState.active) {
-  const ctx = autocompleteState.context;
-  const item = autocompleteState.items[index];
-  if (!ctx || !item) return false;
+function applyQuerySuggestion(index = suggestState.active) {
+  const context = suggestState.context;
+  const item = suggestState.items[index];
+  if (!context || !item) return false;
   const input = $('#query');
-  const before = input.value.slice(0, ctx.start);
-  const after = input.value.slice(ctx.end);
-  const value = ctx.type === 'user' ? quoteDecoratorValue(item.name) : '#' + item.name;
-  const replacement = ctx.key + ':' + value + ' ';
-  input.value = before + replacement + after.replace(/^\s*/, '');
-  const pos = (before + replacement).length;
-  input.setSelectionRange(pos, pos);
-  $('#queryAutocomplete').hidden = true;
-  validateSearchDecorators();
+  const before = input.value.slice(0, context.start);
+  const after = input.value.slice(context.end).replace(/^\s*/, '');
+  const value = context.type === 'channel' ? '#' + item.name : quoteDecoratorValue(item.name);
+  const replacement = `${context.key}:${value} `;
+  input.value = before + replacement + after;
+  const cursor = (before + replacement).length;
+  input.setSelectionRange(cursor, cursor);
+  $('#querySuggest').hidden = true;
   input.focus();
   return true;
 }
-function updateSearchAssist() { validateSearchDecorators(); renderAutocomplete(); }
-async function copyText(text) { await navigator.clipboard.writeText(text); statusEl.textContent = 'Copied.'; }
-function markdownCitation(r) { return `> ${r.snippet || ''}
-
-Source: ${r.file || r.docid || ''}`; }
-function isSlackResult(r) {
-  const corpus = String(r.meta?.corpus || '').toLowerCase();
-  const file = String(r.file || '');
-  return corpus.includes('slack') || file.startsWith('qmd://slack-raw/') || file.startsWith('qmd://slack-api-chunks/');
-}
-function stripSnippetLine(line) {
-  return String(line || '').replace(/^\s*\d+:\s?/, '').trimEnd();
-}
-function parseSlackMessages(snippet) {
-  const rawLines = String(snippet || '').split(/\r?\n/);
-  const messages = [];
-  let current = null;
-  for (const raw of rawLines) {
-    const line = stripSnippetLine(raw);
-    if (!line || /^@@/.test(line) || /^---$/.test(line)) continue;
-    const heading = line.match(/^##\s+([^|]+?)\s+\|\s+([^|]+?)\s+\|\s+ts=([^\s]+)(.*)$/);
-    if (heading) {
-      if (current) messages.push(current);
-      current = {
-        timestamp: heading[1].trim(),
-        user: heading[2].trim(),
-        ts: heading[3].trim(),
-        thread: heading[4].trim(),
-        body: [],
-        sourceLine: raw.match(/^\s*(\d+):/)?.[1] || '',
-      };
-      continue;
-    }
-    if (current) current.body.push(line);
+function buildParams() {
+  const params = new URLSearchParams({q: $('#query').value, mode: $('#mode').value, n: $('#limit').value, sort: $('#sort').value, collection: selectedCollections()});
+  for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within']) {
+    const value = $('#' + id).value.trim();
+    if (value) params.set(id, value);
   }
-  if (current) messages.push(current);
-  return messages;
+  return params;
 }
-function initials(name) {
-  const parts = String(name || '?').trim().split(/\s+/).filter(Boolean);
-  return (parts.length > 1 ? parts[0][0] + parts.at(-1)[0] : (parts[0] || '?').slice(0, 2)).toUpperCase();
+function setStatus(message, kind = '') {
+  statusEl.className = `status ${kind}`.trim();
+  statusEl.textContent = message;
 }
-function prettySlackTime(value) {
-  const s = String(value || '').replace('T', ' ').replace(/\+00:00$/, ' UTC');
-  return s;
+function buildHighlightTerms() {
+  const stop = new Set(['and','or','the','for','with','from','that','this','what','when','where','how','why','user','channel','after','before','corpus','mode','sort']);
+  return [$('#query').value, $('#channel').value, $('#user').value, $('#within').value]
+    .join(' ')
+    .replace(/(^|\s)(from|user|in|channel|after|before|on|corpus|mode|sort):("[^"]+"|'[^']+'|[^\s]+)/gi, ' ')
+    .split(/\s+/)
+    .map((term) => term.trim().replace(/^[^\p{L}\p{N}#@_.:-]+|[^\p{L}\p{N}#@_.:-]+$/gu, '').replace(/^#/, ''))
+    .filter((term) => term.length >= 2 && !stop.has(term.toLowerCase()))
+    .filter((term, index, array) => array.findIndex((other) => other.toLowerCase() === term.toLowerCase()) === index)
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 25);
 }
-function renderSlackBody(lines) {
-  const text = lines.join('\n').trim() || '—';
-  return highlight(text)
-    .replace(/&lt;(https?:[^|&]+)\|([^&]+)&gt;/g, '<a target="_blank" rel="noreferrer" href="$1">$2</a>')
-    .replace(/&lt;(https?:[^&]+)&gt;/g, '<a target="_blank" rel="noreferrer" href="$1">$1</a>');
+function highlight(value) {
+  const html = escapeHtml(value || '');
+  if (!highlightTerms.length) return html;
+  const pattern = highlightTerms.map((term) => escapeRegex(term)).join('|');
+  return pattern ? html.replace(new RegExp(`(${pattern})`, 'gi'), '<mark>$1</mark>') : html;
 }
-function renderSlackMessages(r) {
-  const messages = parseSlackMessages(r.snippet || r.text || '');
-  if (!messages.length) return `<pre>${highlight(r.snippet || r.text || '')}</pre>`;
-  return `<div class="slack-thread">${messages.map((m) => {
-    const threadBits = m.thread ? m.thread.split(/\s+/).filter(Boolean) : [];
-    const threadHtml = threadBits.map((bit) => `<span class="pill thread-badge">${highlight(bit)}</span>`).join('');
-    return `<section class="slack-message">
-      <div class="avatar">${escapeHtml(initials(m.user))}</div>
-      <div>
-        <div class="slack-head"><span class="slack-author">${highlight(m.user)}</span><span class="slack-time">${highlight(prettySlackTime(m.timestamp))}</span>${threadHtml}${m.sourceLine ? `<span class="source-line">line ${escapeHtml(m.sourceLine)}</span>` : ''}</div>
-        <div class="slack-body">${renderSlackBody(m.body)}</div>
-      </div>
-    </section>`;
-  }).join('')}</div>`;
+function resultBadges(result, index) {
+  const meta = result.meta || {};
+  const score = typeof result.score === 'number' ? result.score.toFixed(3) : result.score;
+  return [
+    `#${index + 1}`,
+    meta.corpus || result.backend || 'result',
+    meta.channel || '',
+    meta.date || '',
+    score !== undefined && score !== '' ? `score ${score}` : '',
+  ].filter(Boolean).map((badge) => `<span class="badge">${highlight(badge)}</span>`).join('');
 }
-function renderDocumentSnippet(text) {
-  const lines = String(text || '').split(/\r?\n/).map(stripSnippetLine).filter((line) => line && !/^@@/.test(line));
-  if (!lines.length) return '<div class="doc-snippet hint">No snippet.</div>';
-  return `<div class="doc-snippet">${lines.slice(0, 80).map((line) => {
-    if (/^#{1,6}\s+/.test(line)) return `<div class="doc-line doc-heading">${highlight(line.replace(/^#{1,6}\s+/, ''))}</div>`;
-    if (/^[-*]\s+/.test(line)) return `<div class="doc-line doc-list">• ${highlight(line.replace(/^[-*]\s+/, ''))}</div>`;
-    if (/^```/.test(line)) return `<div class="doc-line source-line">${highlight(line)}</div>`;
-    return `<div class="doc-line">${highlight(line)}</div>`;
-  }).join('')}</div>`;
-}
-function resultHtml(r, index) {
-  const file = r.file || r.path || r.id || '';
-  const score = typeof r.score === 'number' ? r.score.toFixed(4) : (r.score ?? '');
-  const m = r.meta || {};
-  const bodyHtml = isSlackResult(r) ? renderSlackMessages(r) : renderDocumentSnippet(r.snippet || r.text || '');
-  const kind = isSlackResult(r) ? 'Slack messages' : (m.corpus === 'wiki' ? 'Wiki/document' : 'Document');
-  return `<article class="result" data-index="${index}">
-    <div class="badges"><span class="pill">#${index + 1}</span><span class="pill">${escapeHtml(kind)}</span><span class="pill">${highlight(m.corpus || 'unknown')}</span>${m.date ? `<span class="pill">${highlight(m.date)}</span>` : ''}${m.channel ? `<span class="pill">${highlight(m.channel)}</span>` : ''}<span class="pill">score ${highlight(score)}</span>${r.exactUserMatches ? `<span class="pill">${escapeHtml(r.exactUserMatches)} exact user msg(s)</span>` : ''}</div>
-    <h3>${highlight(r.title || file || 'Untitled')}</h3>
+function resultHtml(result, index) {
+  const file = result.file || result.path || result.id || '';
+  const snippet = result.snippet || result.text || '';
+  return `<article class="panel result" data-index="${index}">
+    <div class="badges">${resultBadges(result, index)}</div>
+    <h2>${highlight(result.title || file || 'Untitled')}</h2>
     <div class="path">${highlight(file)}</div>
-    ${r.context ? `<p class="hint">${highlight(r.context)}</p>` : ''}
-    ${bodyHtml}
-    <details class="raw-toggle"><summary class="hint">Raw QMD snippet</summary><pre class="raw-snippet">${highlight(r.snippet || r.text || '')}</pre></details>
+    <pre>${highlight(snippet || 'No snippet returned.')}</pre>
     <div class="actions">
-      ${file ? `<button type="button" data-action="open">Open lines</button><button type="button" data-action="copy-uri">Copy URI</button>` : ''}
+      ${file ? '<button type="button" data-action="open">Open source</button><button type="button" data-action="copy-uri">Copy URI</button>' : ''}
       <button type="button" data-action="copy-snippet">Copy snippet</button>
       <button type="button" data-action="copy-citation">Copy citation</button>
-      <button type="button" data-action="json">View JSON</button>
+      <button type="button" data-action="json">JSON</button>
     </div>
   </article>`;
 }
-function resultUsers(result) {
-  if (!isSlackResult(result)) return [];
-  return [...new Set(parseSlackMessages(result.snippet || result.text || '').map((m) => m.user).filter(Boolean))];
-}
-function increment(map, key) {
-  if (!key) return;
-  map.set(key, (map.get(key) || 0) + 1);
-}
-function topFacetValues(map, limit = 24) {
-  return [...map.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))).slice(0, limit);
-}
-function computeResultFacets(results) {
-  const counts = {corpus: new Map(), channel: new Map(), date: new Map(), user: new Map()};
-  for (const r of results) {
-    increment(counts.corpus, r.meta?.corpus || 'unknown');
-    increment(counts.channel, r.meta?.channel || '');
-    increment(counts.date, r.meta?.date || '');
-    for (const user of resultUsers(r)) increment(counts.user, user);
+async function copyText(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    setStatus('Copied.');
+  } catch {
+    setStatus('Clipboard unavailable in this browser; select and copy manually.', 'warn');
   }
-  return counts;
 }
-function resultMatchesFacetFilters(result) {
-  const checks = [
-    ['corpus', result.meta?.corpus || 'unknown'],
-    ['channel', result.meta?.channel || ''],
-    ['date', result.meta?.date || ''],
-  ];
-  for (const [key, value] of checks) {
-    if (resultFacetFilters[key].size && !resultFacetFilters[key].has(value)) return false;
-  }
-  if (resultFacetFilters.user.size) {
-    const users = resultUsers(result);
-    if (!users.some((u) => resultFacetFilters.user.has(u))) return false;
-  }
-  return true;
-}
-function filteredResults() {
-  return allResults.filter(resultMatchesFacetFilters);
-}
-function hasResultFacetFilters() {
-  return Object.values(resultFacetFilters).some((set) => set.size > 0);
-}
-function clearResultFacetFilters() {
-  resultFacetFilters = {corpus: new Set(), channel: new Set(), date: new Set(), user: new Set()};
-}
-function facetButtonHtml(kind, value, count) {
-  const active = resultFacetFilters[kind].has(value);
-  return `<button type="button" class="facet-chip ${active ? 'active' : ''}" data-facet-kind="${escapeHtml(kind)}" data-facet-value="${escapeHtml(value)}">${highlight(value)} <span class="facet-count">${count}</span></button>`;
-}
-function activeFacetChipsHtml() {
-  const chips = [];
-  for (const [kind, set] of Object.entries(resultFacetFilters)) {
-    for (const value of set) chips.push(`<button type="button" class="facet-chip facet-active-chip" data-facet-kind="${escapeHtml(kind)}" data-facet-value="${escapeHtml(value)}">${escapeHtml(kind)}: ${highlight(value)} ×</button>`);
-  }
-  return chips.join('');
-}
-function renderFacetGroup(title, kind, entries) {
-  if (!entries.length) return '';
-  const activeCount = resultFacetFilters[kind].size;
-  const total = entries.reduce((sum, [, count]) => sum + count, 0);
-  return `<details class="facet-dropdown"><summary>${escapeHtml(title)}${activeCount ? ` · ${activeCount} selected` : ` · ${entries.length}`}</summary><div class="facet-panel"><div class="hint" style="margin-bottom:.5rem">${total} result hit(s) across ${entries.length} returned value(s)</div><div class="facet-values">${entries.map(([value, count]) => facetButtonHtml(kind, value, count)).join('')}</div></div></details>`;
-}
-function renderResultFacets() {
-  if (!allResults.length) { resultFacetsEl.hidden = true; resultFacetsEl.innerHTML = ''; return; }
-  const counts = computeResultFacets(allResults);
-  const active = hasResultFacetFilters();
-  resultFacetsEl.hidden = false;
-  resultFacetsEl.innerHTML = `<div class="facet-toolbar"><span class="facet-toolbar-title">Narrow returned results</span><span class="hint">Instant filters for this result set</span>`
-    + renderFacetGroup('Corpus', 'corpus', topFacetValues(counts.corpus, 12))
-    + renderFacetGroup('Channel', 'channel', topFacetValues(counts.channel, 30))
-    + renderFacetGroup('Date', 'date', topFacetValues(counts.date, 40))
-    + renderFacetGroup('User', 'user', topFacetValues(counts.user, 30))
-    + `${active ? '<button type="button" data-clear-result-facets="1">Clear</button>' : ''}</div><div class="active-facets">${activeFacetChipsHtml()}</div>`;
-}
-function renderVisibleResults() {
-  const visible = filteredResults();
-  const elapsed = lastSearchMeta?.elapsed ? ` (${lastSearchMeta.elapsed}s)` : '';
-  const filterText = hasResultFacetFilters() ? `; ${visible.length} after result filters` : '';
-  if (lastSearchMeta) statusEl.textContent = `${lastSearchMeta.returned} returned from QMD${filterText}; ${lastSearchMeta.matched} matched from ${lastSearchMeta.fetched} fetched${elapsed}. Max per search: ${lastSearchMeta.maxResults}.`;
-  lastResults = visible;
-  resultsEl.innerHTML = visible.map(resultHtml).join('') || '<p>No results match the selected result filters.</p>';
-  renderResultFacets();
-}
+function citationFor(result) { return `> ${result.snippet || result.text || ''}\n\nSource: ${result.file || result.path || ''}`; }
 async function search() {
-  const validation = validateSearchDecorators();
-  if (validation.invalid.length) {
-    statusEl.textContent = 'Fix unknown user/channel decorators before searching.';
-    $('#query').focus();
-    return;
-  }
-  statusEl.textContent = 'Searching…';
-  activeHighlightTerms = buildHighlightTerms();
+  setStatus('Searching…');
   resultsEl.innerHTML = '';
-  resultFacetsEl.hidden = true;
-  resultFacetsEl.innerHTML = '';
-  const started = performance.now();
+  highlightTerms = buildHighlightTerms();
   try {
-    const response = await fetch(`/api/search?${params()}`);
+    const response = await fetch(`/api/search?${buildParams()}`);
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || data.stderr || 'search failed');
-    allResults = data.results || [];
-    clearResultFacetFilters();
-    const elapsed = ((performance.now() - started) / 1000).toFixed(1);
-    lastSearchMeta = {returned: data.returned, matched: data.matched, fetched: data.fetched, maxResults: data.maxResults, elapsed, backend: data.backend || 'qmd', warning: data.warning || '', filters: data.filters || []};
-    renderVisibleResults();
+    if (!response.ok) throw new Error(data.error || 'search failed');
+    lastResults = data.results || [];
+    resultsEl.innerHTML = lastResults.map(resultHtml).join('') || '<p class="subtle">No results. Try fewer filters or a broader query.</p>';
+    const elapsed = data.elapsedMs === undefined ? '' : ` in ${(Number(data.elapsedMs) / 1000).toFixed(2)}s`;
+    const message = `${data.returned || 0} results; ${data.matched || 0} matched from ${data.fetched || 0} fetched${elapsed}. Backend: ${data.backend || 'qmd'}.`;
+    setStatus(data.warning ? `${message} ${data.warning}` : message, data.warning ? 'warn' : '');
   } catch (error) {
-    statusEl.textContent = `Error: ${error.message}`;
+    lastResults = [];
+    setStatus(`Error: ${error.message}`, 'bad');
   }
 }
-$('#query').addEventListener('input', updateSearchAssist);
-$('#query').addEventListener('click', updateSearchAssist);
-$('#query').addEventListener('keyup', (event) => { if (!['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(event.key)) updateSearchAssist(); });
-$('#query').addEventListener('keydown', (event) => {
-  const box = $('#queryAutocomplete');
-  if (box.hidden) return;
-  if (event.key === 'ArrowDown') { event.preventDefault(); autocompleteState.active = Math.min(autocompleteState.active + 1, autocompleteState.items.length - 1); paintAutocompleteActive(); }
-  else if (event.key === 'ArrowUp') { event.preventDefault(); autocompleteState.active = Math.max(autocompleteState.active - 1, 0); paintAutocompleteActive(); }
-  else if (event.key === 'Enter' || event.key === 'Tab') { if (applyAutocomplete()) event.preventDefault(); }
-  else if (event.key === 'Escape') { box.hidden = true; }
-});
-$('#queryAutocomplete').addEventListener('mousedown', (event) => {
-  const button = event.target.closest('button[data-index]');
-  if (!button) return;
-  event.preventDefault();
-  applyAutocomplete(Number(button.dataset.index));
-});
-form.addEventListener('submit', (event) => { event.preventDefault(); search(); });
-resultFacetsEl.addEventListener('click', (event) => {
-  const clear = event.target.closest('button[data-clear-result-facets]');
-  if (clear) { clearResultFacetFilters(); renderVisibleResults(); return; }
-  const button = event.target.closest('button[data-facet-kind]');
-  if (!button) return;
-  const kind = button.dataset.facetKind;
-  const value = button.dataset.facetValue;
-  const set = resultFacetFilters[kind];
-  if (!set) return;
-  if (set.has(value)) set.delete(value); else set.add(value);
-  renderVisibleResults();
-});
-resultsEl.addEventListener('click', async (event) => {
-  const button = event.target.closest('button[data-action]'); if (!button) return;
-  const article = event.target.closest('.result'); const r = lastResults[Number(article.dataset.index)]; const file = r.file || r.path || '';
-  const action = button.dataset.action;
-  if (action === 'copy-uri') return copyText(file);
-  if (action === 'copy-snippet') return copyText(r.snippet || '');
-  if (action === 'copy-citation') return copyText(markdownCitation(r));
-  if (action === 'json') { docTitle.textContent = 'Result JSON'; docBody.innerHTML = `<pre>${highlight(JSON.stringify(r, null, 2))}</pre>`; return dialog.showModal(); }
-  if (action === 'open') {
-    docTitle.textContent = file; docBody.textContent = 'Loading…'; dialog.showModal();
-    try { const response = await fetch(`/api/get?target=${encodeURIComponent(file)}&lines=220`); const body = await response.text(); docBody.innerHTML = response.ok ? `<pre>${highlight(body)}</pre>` : `<pre>${highlight(`Error: ${body}`)}</pre>`; }
-    catch (error) { docBody.textContent = `Error: ${error.message}`; }
-  }
-});
-
-function fmtInt(n) { return Number(n || 0).toLocaleString(); }
-function fmtBytes(bytes) {
-  const n = Number(bytes || 0);
-  if (!n) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = n; let i = 0;
-  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
-  return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
-}
-function statCard(label, value, sub = '') {
-  return `<div class="stat-card"><div class="stat-label">${escapeHtml(label)}</div><div class="stat-value">${escapeHtml(value)}</div>${sub ? `<div class="stat-sub">${escapeHtml(sub)}</div>` : ''}</div>`;
-}
-function bars(counts) {
-  const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
-  const max = Math.max(1, ...entries.map(([, v]) => Number(v || 0)));
-  if (!entries.length) return '<div class="hint">No status data yet.</div>';
-  return `<div class="bar-list">${entries.map(([key, value]) => `<div class="bar-row"><span>${escapeHtml(key)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, (Number(value || 0) / max) * 100)}%"></div></div><span>${fmtInt(value)}</span></div>`).join('')}</div>`;
-}
-function recentRealtimeSparkline(summaries) {
-  const values = (summaries || []).map((s) => Number(s.messages_written || 0));
-  const max = Math.max(1, ...values);
-  if (!values.length) return '<div class="hint">No realtime summaries yet.</div>';
-  return `<div class="bar-list">${values.map((value, i) => `<div class="bar-row"><span>run ${i + 1}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, (value / max) * 100)}%"></div></div><span>${fmtInt(value)} msg</span></div>`).join('')}</div>`;
-}
-function renderTelemetry(data) {
-  const artifacts = data.artifacts || {};
-  const full = data.fullDownload || {};
-  const realtime = data.realtime || {};
-  const qmdCollections = data.qmd?.collections || [];
-  const activeText = (full.active || []).map((a) => `${a.status}: ${a.name}`).join('\n') || 'None';
-  $('#telemetryBody').innerHTML = `
-    <div class="hint">Generated ${escapeHtml(data.generatedAt || '')}; Slack run <code>${escapeHtml(data.slackRunId || '')}</code></div>
-    <div class="telemetry-grid">
-      ${statCard('Conversations tracked', fmtInt(full.trackedConversations), `${fmtInt((full.statusCounts || {}).complete)} complete`)}
-      ${statCard('Slack chunk JSON', fmtInt(artifacts.chunkJson?.files), fmtBytes(artifacts.chunkJson?.bytes))}
-      ${statCard('QMD chunk markdown', fmtInt(artifacts.qmdMarkdown?.files), fmtBytes(artifacts.qmdMarkdown?.bytes))}
-      ${statCard('Wiki pages', fmtInt(artifacts.wikiMarkdown?.files), fmtBytes(artifacts.wikiMarkdown?.bytes))}
-      ${statCard('Raw Slack markdown', fmtInt(artifacts.rawMarkdown?.files), fmtBytes(artifacts.rawMarkdown?.bytes))}
-      ${statCard('History / replies', `${fmtInt(artifacts.historyJson?.files)} / ${fmtInt(artifacts.replyJson?.files)}`, 'API page files')}
-      ${statCard('Realtime channels', fmtInt(realtime.trackedChannels), `${fmtInt(realtime.activeThreads)} active threads`)}
-      ${statCard('Last realtime run', realtime.lastRun?.run_id || '—', `${fmtInt(realtime.lastRun?.messages_written)} new messages`)}
-    </div>
-    <div class="telemetry-panels">
-      <div class="stat-card"><h3>Full download status</h3>${bars(full.statusCounts)}<div class="stat-sub">Active: ${escapeHtml(activeText)}</div></div>
-      <div class="stat-card"><h3>Recent realtime writes</h3>${recentRealtimeSparkline(realtime.summaries)}<div class="stat-sub">Round-robin offset: ${fmtInt(realtime.roundRobinOffset)}</div></div>
-      <div class="stat-card"><h3>QMD collections</h3>${qmdCollections.length ? bars(Object.fromEntries(qmdCollections.map((c) => [c.name, c.files || 0]))) : '<div class="hint">QMD collection list unavailable.</div>'}</div>
-      <div class="stat-card"><h3>Recent downloader log</h3><pre class="mini-log">${escapeHtml((full.logTail || []).slice(-10).join('\n'))}</pre></div>
-    </div>`;
-}
-async function loadTelemetry() {
+async function openResult(result) {
+  const file = result.file || result.path || '';
+  docTitle.textContent = file || 'Result';
+  docBody.innerHTML = '<p class="subtle">Loading…</p>';
+  dialog.showModal();
   try {
-    const response = await fetch('/api/telemetry');
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'telemetry failed');
-    renderTelemetry(data);
+    const response = await fetch(`/api/get?target=${encodeURIComponent(file)}&lines=220`);
+    const body = await response.text();
+    docBody.innerHTML = response.ok ? `<pre>${highlight(body)}</pre>` : `<pre>${escapeHtml(body)}</pre>`;
   } catch (error) {
-    $('#telemetryBody').innerHTML = `<span class="hint">Telemetry unavailable: ${escapeHtml(error.message)}</span>`;
+    docBody.innerHTML = `<pre>${escapeHtml(error.message)}</pre>`;
   }
 }
 async function loadFacets() {
   try {
+    const started = performance.now();
     const response = await fetch('/api/facets');
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'facets failed');
-    facets = data;
-    userLookup = new Map();
-    channelLookup = new Map();
-    for (const u of (facets.users || [])) {
-      userLookup.set(normName(u.name), u);
-      if (u.id) userLookup.set(normName(u.id), u);
-      if (u.slackName) userLookup.set(normName(u.slackName), u);
-      if (u.realName) userLookup.set(normName(u.realName), u);
-      if (u.displayName) userLookup.set(normName(u.displayName), u);
-      for (const alias of (u.aliases || [])) userLookup.set(normName(alias), u);
-    }
-    for (const c of (facets.channels || [])) { channelLookup.set(normName(c.name), c); if (c.id) channelLookup.set(normName(c.id), c); }
-    $('#channelOptions').innerHTML = (facets.channels || []).slice(0, 1000).map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.id ? `${c.id} · ${c.count || 0}` : `${c.count || 0}`)}</option>`).join('');
-    $('#userOptions').innerHTML = (facets.users || []).slice(0, 2000).map((u) => `<option value="${escapeHtml(u.name)}">${escapeHtml([u.realName && normName(u.realName) !== normName(u.name) ? u.realName : '', u.slackName ? '@' + u.slackName : '', u.id || '', u.count ? `${u.count} messages` : ''].filter(Boolean).join(' · '))}</option>`).join('');
-    $('#userAvatarRow').innerHTML = (facets.users || []).slice(0, 5).map((u) => `<span class="avatar-dot" title="${escapeHtml(u.name)}">${escapeHtml(String(u.name || '?').slice(0, 2).toUpperCase())}</span>`).join('') || '<span class="hint">No user facets</span>';
-    $('#tagChips').innerHTML = (facets.wikiTags || []).slice(0, 8).map((tag) => `<button type="button" class="chip" data-tag-chip="${escapeHtml(tag.name)}"># ${escapeHtml(tag.name)} <span class="facet-count">${escapeHtml(tag.count || '')}</span></button>`).join('') || '<span class="hint">No wiki tag facets found.</span>';
-    $('#folderFilter').innerHTML = '<option>Search folders…</option>' + (facets.wikiFolders || []).map((folder) => `<option value="${escapeHtml(folder.name)}">${escapeHtml(folder.name)} · ${escapeHtml(folder.count || 0)}</option>`).join('');
-    updateSearchAssist();
-    if (data.dates?.min && !$('#dateFrom').placeholder) $('#dateFrom').title = `Earliest raw Slack date: ${data.dates.min}`;
-    if (data.dates?.max && !$('#dateTo').placeholder) $('#dateTo').title = `Latest raw Slack date: ${data.dates.max}`;
-    const chips = data.decorators || [];
-    $('#decoratorChips').innerHTML = '<span class="hint">Decorators:</span>' + chips.map((d) => `<button class="chip" type="button" data-decorator="${escapeHtml(d)}">${escapeHtml(d)}</button>`).join('');
+    const facets = await response.json();
+    if (!response.ok) throw new Error(facets.error || 'facet load failed');
+    facetState = {users: facets.users || [], channels: facets.channels || []};
+    $('#channelOptions').innerHTML = facetState.channels.slice(0, 300).map((channel) => `<option value="${escapeHtml(channel.name)}">${escapeHtml([channel.id, channel.count ? `${channel.count} matches` : ''].filter(Boolean).join(' · '))}</option>`).join('');
+    $('#userOptions').innerHTML = facetState.users.slice(0, 300).map((user) => `<option value="${escapeHtml(user.name)}">${escapeHtml([user.realName, user.slackName ? '@' + user.slackName : '', user.id, user.count ? `${user.count} matches` : ''].filter(Boolean).join(' · '))}</option>`).join('');
+    if (statusEl.textContent === 'Ready.') setStatus(`Ready. Loaded ${facetState.users.length} user and ${facetState.channels.length} channel suggestions in ${((performance.now() - started) / 1000).toFixed(2)}s.`);
+    renderQuerySuggest();
   } catch (error) {
-    $('#decoratorChips').insertAdjacentHTML('beforeend', `<span class="hint">facet load failed: ${escapeHtml(error.message)}</span>`);
+    setStatus(`Facet suggestions unavailable: ${error.message}`, 'warn');
   }
 }
-$('#decoratorChips').addEventListener('click', (event) => {
-  const button = event.target.closest('button[data-decorator]');
-  if (!button) return;
-  const input = $('#query');
-  const add = button.dataset.decorator;
-  input.value = input.value.trim() ? `${input.value.trim()} ${add}` : add;
-  input.focus();
-});
-
-// Edge-style UI state and wiring. These definitions intentionally override the
-// simpler baseline renderers above while keeping the same backend contract.
-let activeResultTab = 'all';
-let selectedResultOrdinal = null;
-let currentViewMode = 'list';
-
-function resultCategory(result) {
-  if (isSlackResult(result)) return 'slack';
-  const corpus = String(result.meta?.corpus || '').toLowerCase();
-  if (corpus.includes('wiki')) return 'obsidian';
-  return 'other';
-}
-function isThreadLike(result) { return isSlackResult(result) && /thread_ts=|reply|thread/i.test(`${result.snippet || ''} ${result.title || ''}`); }
-function hasFileLike(result) { return /file:|attachment:|https?:\/\//i.test(`${result.snippet || ''} ${result.title || ''}`); }
-function tabCounts(results) {
-  const counts = {all: results.length, slack: 0, obsidian: 0, threads: 0, people: 0, files: 0};
-  for (const r of results) {
-    const cat = resultCategory(r);
-    if (cat === 'slack') counts.slack++;
-    if (cat === 'obsidian') counts.obsidian++;
-    if (isThreadLike(r)) counts.threads++;
-    if (resultUsers(r).length) counts.people++;
-    if (hasFileLike(r)) counts.files++;
-  }
-  return counts;
-}
-function resultMatchesActiveTab(result) {
-  if (activeResultTab === 'all') return true;
-  if (activeResultTab === 'slack') return resultCategory(result) === 'slack';
-  if (activeResultTab === 'obsidian') return resultCategory(result) === 'obsidian';
-  if (activeResultTab === 'threads') return isThreadLike(result);
-  if (activeResultTab === 'people') return resultUsers(result).length > 0;
-  if (activeResultTab === 'files') return hasFileLike(result);
-  return true;
-}
-const baseResultMatchesFacetFilters = resultMatchesFacetFilters;
-resultMatchesFacetFilters = function(result) { return baseResultMatchesFacetFilters(result) && resultMatchesActiveTab(result); };
-
-function renderQueryTokens() {
-  const host = $('#queryTokens');
-  if (!host) return;
-  const tokens = parseSearchDecorators($('#query').value);
-  const basics = [];
-  const collection = selectedCollections();
-  if (collection && collection !== 'all' && ($('#query').value.trim() || allResults.length)) basics.push({label: `source: ${collection}`});
-  for (const [id, label] of [['channel','channel'], ['user','user'], ['dateFrom','after'], ['dateTo','before'], ['within','within'], ['tagFilter','tag'], ['folderFilter','folder']]) {
-    const el = $('#' + id);
-    if (el && el.value && el.value !== 'Search folders…') basics.push({label: `${label}: ${el.value}`});
-  }
-  if ($('#includeDms')?.value) basics.push({label: `dm: ${$('#includeDms').value}`});
-  host.innerHTML = tokens.map((t, i) => `<button type="button" class="chip" data-remove-token="${i}">${escapeHtml(t.key)}: ${escapeHtml(t.value)} <span class="token-remove">×</span></button>`).join('')
-    + basics.map((t) => `<span class="chip">${escapeHtml(t.label)}</span>`).join('')
-    + '<button type="button" class="chip" id="addFilterChip">＋ Add filter</button>';
-  const interp = tokens.length ? tokens.map((t) => `${t.key} ${t.value}`).join(', ') : ($('#query').value || 'Use structured filters or type naturally.');
-  $('#nlInterpretation').textContent = `“${interp}”`;
-}
-const baseUpdateSearchAssist = updateSearchAssist;
-updateSearchAssist = function() { baseUpdateSearchAssist(); renderQueryTokens(); renderSidebarChips(); };
-
-function renderSidebarChips() {
-  const channel = $('#channel')?.value?.trim();
-  const user = $('#user')?.value?.trim();
-  const channelHost = $('#channelChips');
-  if (channelHost) channelHost.innerHTML = channel ? `<button type="button" class="chip" data-clear-sidebar="channel"># ${escapeHtml(channel)} ×</button>` : '<span class="hint">No channel filter</span>';
-  const userChip = $('#selectedUserChip');
-  if (userChip) userChip.textContent = user ? `${user} ×` : 'No user selected';
-}
-function setMode(mode) {
-  $('#mode').value = mode;
-  document.querySelectorAll('.mode-pill').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
-}
-function setDateRange(days) {
-  const now = new Date();
-  const end = now.toISOString().slice(0, 10);
-  const start = new Date(now.getTime() - Number(days) * 86400000).toISOString().slice(0, 10);
-  $('#dateFrom').value = start;
-  $('#dateTo').value = end;
-  document.querySelectorAll('[data-range]').forEach((b) => b.classList.toggle('active', b.dataset.range === String(days)));
-}
-function updateSourceWeights(changed) {
-  const slack = $('#slackWeight'); const obsidian = $('#obsidianWeight');
-  if (!slack || !obsidian) return;
-  if (changed === 'slack') obsidian.value = String(100 - Number(slack.value));
-  if (changed === 'obsidian') slack.value = String(100 - Number(obsidian.value));
-  $('#slackWeightLabel').textContent = `${slack.value}%`;
-  $('#obsidianWeightLabel').textContent = `${obsidian.value}%`;
-}
-function updateTabsAndSummary() {
-  const counts = tabCounts(allResults);
-  document.querySelectorAll('[data-result-tab]').forEach((button) => {
-    const tab = button.dataset.resultTab;
-    button.classList.toggle('active', tab === activeResultTab);
-    const span = button.querySelector('span');
-    if (span) span.textContent = String(counts[tab] || 0);
-  });
-  const total = counts.all || 0;
-  const slackPct = total ? Math.round((counts.slack / total) * 100) : 0;
-  const obsPct = total ? Math.round((counts.obsidian / total) * 100) : 0;
-  $('#slackShare').textContent = `Slack ${counts.slack} (${slackPct}%)`;
-  $('#obsidianShare').textContent = `Obsidian ${counts.obsidian} (${obsPct}%)`;
-}
-function filteredResults() { return allResults.filter(resultMatchesFacetFilters); }
-function resultHtml(r, index) {
-  const file = r.file || r.path || r.id || '';
-  const score = typeof r.score === 'number' ? r.score.toFixed(2) : (r.score ?? '');
-  const m = r.meta || {};
-  const slack = isSlackResult(r);
-  const bodyHtml = slack ? renderSlackMessages(r) : renderDocumentSnippet(r.snippet || r.text || '');
-  const selected = selectedResultOrdinal === index;
-  const typeBadge = slack ? (isThreadLike(r) ? 'Thread' : 'Reply') : 'Note';
-  return `<article class="result ${selected ? 'selected' : ''}" data-index="${index}">
-    <div class="badges"><span class="pill">${escapeHtml(m.channel || m.corpus || 'result')}</span>${m.date ? `<span class="pill">${escapeHtml(m.date)}</span>` : ''}<span class="pill">${escapeHtml(typeBadge)}</span><span class="pill">Score ${escapeHtml(score)}</span>${r.exactUserMatches ? `<span class="pill confidence">Exact match</span>` : ''}<button type="button" data-action="copy-citation" title="Copy citation">⋮</button></div>
-    <h3>${highlight(r.title || file || 'Untitled')}</h3>
-    <div class="path">${highlight(file)}</div>
-    ${bodyHtml}
-    <details class="raw-toggle"><summary class="hint">Raw QMD snippet</summary><pre>${highlight(r.snippet || r.text || '')}</pre></details>
-    <div class="actions"><button type="button" data-action="open">Open lines</button><button type="button" data-action="copy-uri">Copy URI</button><button type="button" data-action="copy-snippet">Copy snippet</button><button type="button" data-action="json">JSON</button></div>
-  </article>`;
-}
-
-function clientSortedResults(results, sort) {
-  const copy = [...results];
-  if (sort === 'date-desc') copy.sort((a, b) => String(b.meta?.date || '').localeCompare(String(a.meta?.date || '')) || Number(b.score || 0) - Number(a.score || 0));
-  else if (sort === 'date-asc') copy.sort((a, b) => String(a.meta?.date || '').localeCompare(String(b.meta?.date || '')) || Number(b.score || 0) - Number(a.score || 0));
-  else if (sort === 'channel') copy.sort((a, b) => String(a.meta?.channel || '').localeCompare(String(b.meta?.channel || '')) || String(a.meta?.date || '').localeCompare(String(b.meta?.date || '')));
-  else if (sort === 'corpus') copy.sort((a, b) => String(a.meta?.corpus || '').localeCompare(String(b.meta?.corpus || '')) || String(a.file || '').localeCompare(String(b.file || '')));
-  return copy;
-}
-function sortCurrentResults(sort) {
-  allResults = clientSortedResults(allResults, sort).map((r, i) => ({...r, ordinal: i}));
-  selectedResultOrdinal = null;
-  renderVisibleResults();
-}
-
-function renderVisibleResults() {
-  updateTabsAndSummary();
-  const visible = filteredResults();
-  const elapsed = lastSearchMeta?.elapsed ? ` (${lastSearchMeta.elapsed}s)` : '';
-  const filterText = hasResultFacetFilters() || activeResultTab !== 'all' ? `; ${visible.length} visible` : '';
-  if (lastSearchMeta) {
-    const activeFilters = (lastSearchMeta.filters || []).length ? ` Active filters: ${lastSearchMeta.filters.join(', ')}.` : '';
-    const zeroFiltered = lastSearchMeta.returned === 0 && lastSearchMeta.fetched > 0 && activeFilters ? '<span class="pill bad">Post-filters removed all candidates</span> ' : '';
-    statusEl.innerHTML = `${zeroFiltered}${lastSearchMeta.warning ? '<span class="pill fallback-warning">Local markdown fallback</span> ' : ''}${lastSearchMeta.returned} results${filterText}; ${lastSearchMeta.matched} matched from ${lastSearchMeta.fetched} fetched${elapsed}.${activeFilters}`;
-  }
-  lastResults = visible;
-  resultsEl.classList.toggle('grid-results', currentViewMode === 'grid');
-  resultsEl.innerHTML = visible.map(resultHtml).join('') || '<p class="hint">No results match these filters.</p>';
-  renderResultFacets();
-  if (selectedResultOrdinal === null && visible.length) selectResult(0, {scroll: false});
-  else renderDetailPanel(lastResults[selectedResultOrdinal] || null);
-  updateBoardBar();
-}
-async function search() {
-  const validation = validateSearchDecorators();
-  if (validation.invalid.length) { statusEl.textContent = 'Fix unknown user/channel decorators before searching.'; $('#query').focus(); return; }
-  statusEl.textContent = 'Searching…'; activeHighlightTerms = buildHighlightTerms(); resultsEl.innerHTML = ''; selectedResultOrdinal = null;
-  resultFacetsEl.hidden = true; resultFacetsEl.innerHTML = '';
-  const started = performance.now();
+async function checkHealth() {
   try {
-    const response = await fetch(`/api/search?${params()}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || data.stderr || 'search failed');
-    allResults = (data.results || []).map((r, i) => ({...r, ordinal: i}));
-    clearResultFacetFilters();
-    const elapsed = ((data.elapsedMs ?? (performance.now() - started)) / 1000).toFixed(2);
-    lastSearchMeta = {returned: data.returned, matched: data.matched, fetched: data.fetched, maxResults: data.maxResults, elapsed, backend: data.backend || 'qmd', warning: data.warning || '', filters: data.filters || []};
-    saveSearchHistory();
-    renderVisibleResults();
-  } catch (error) { statusEl.textContent = `Error: ${error.message}`; renderDetailPanel(null); }
-}
-function firstUrl(text) { return String(text || '').match(/https?:\/\/[^\s)>"]+/)?.[0] || ''; }
-function whyResult(result) {
-  const q = $('#query').value.toLowerCase();
-  const bits = [];
-  if ($('#user').value || /user:|from:/i.test($('#query').value)) bits.push('Exact user filter considered');
-  if ($('#channel').value || /in:|channel:/i.test($('#query').value)) bits.push('Exact channel/path filter considered');
-  const terms = q.split(/\s+/).filter((t) => t.length > 3 && !t.includes(':')).slice(0, 5);
-  if (terms.length) bits.push(`Keyword overlap: ${terms.join(', ')}`);
-  if (result?.score) bits.push(`QMD score ${Number(result.score).toFixed(2)}`);
-  if (isThreadLike(result)) bits.push('Thread/reply context present');
-  return bits;
-}
-function relatedResults(result) {
-  if (!result) return [];
-  const channel = result.meta?.channel;
-  return allResults.filter((r) => r !== result && (r.meta?.channel === channel || resultCategory(r) !== resultCategory(result))).slice(0, 3);
-}
-function renderDetailPanel(result) {
-  const pane = $('#detailPane');
-  if (!pane) return;
-  if (!result) { pane.innerHTML = '<div class="hint">Select a result to inspect thread details, why it matched, and related results.</div>'; return; }
-  const messages = parseSlackMessages(result.snippet || result.text || '');
-  const lead = messages[0];
-  const url = firstUrl(result.snippet || result.text || result.file || '');
-  const related = relatedResults(result);
-  pane.innerHTML = `<div class="detail-top"><button type="button" id="backToResults">‹ Back to results</button><div class="detail-actions"><button type="button" id="prevResult">‹</button><button type="button" id="nextResult">›</button></div></div>
-    <div class="badges"><span class="pill">${escapeHtml(result.meta?.channel || result.meta?.corpus || 'result')}</span>${result.meta?.date ? `<span class="pill">${escapeHtml(result.meta.date)}</span>` : ''}<span class="pill">${isThreadLike(result) ? 'Thread' : 'Result'}</span></div>
-    <div class="detail-card">${isSlackResult(result) ? renderSlackMessages(result) : renderDocumentSnippet(result.snippet || result.text || '')}${url ? `<p><a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">Open linked source</a></p>` : ''}<button type="button" data-detail-open="1">Open source lines</button></div>
-    <div class="detail-card"><h3>Why this result?</h3><div class="why-list">${whyResult(result).map((b) => `<span class="ok">✓ ${escapeHtml(b)}</span>`).join('') || '<span class="hint">Matched by QMD relevance.</span>'}</div></div>
-    <div class="detail-card"><h3>Related results</h3>${related.map((r) => `<div class="related-item"><span>${resultCategory(r) === 'slack' ? '🌈' : '💎'}</span><div>${escapeHtml(r.title || r.file || 'Untitled')}<div class="hint">${escapeHtml(r.meta?.channel || r.meta?.corpus || '')}</div></div></div>`).join('') || '<div class="hint">No related results in the current set.</div>'}</div>`;
-}
-function selectResult(index, opts = {}) { selectedResultOrdinal = index; renderDetailPanel(lastResults[index] || null); document.querySelectorAll('.result').forEach((el) => el.classList.toggle('selected', Number(el.dataset.index) === index)); if (opts.scroll !== false) $('#detailPane')?.scrollIntoView({block: 'nearest'}); }
-function updateBoardBar() { const counts = tabCounts(allResults); $('#boardItems').textContent = `${fmtInt(allResults.length)} items`; $('#boardNotes').textContent = `${fmtInt(counts.obsidian)} notes`; $('#boardMessages').textContent = `${fmtInt(counts.slack)} messages`; }
-function saveSearchHistory() { const item = {q: $('#query').value, at: new Date().toISOString(), params: String(params())}; const items = JSON.parse(localStorage.getItem('qmdSearchHistory') || '[]'); items.unshift(item); localStorage.setItem('qmdSearchHistory', JSON.stringify(items.slice(0, 20))); }
-function clearAllFilters() { for (const id of ['channel','user','dateFrom','dateTo','within','tagFilter']) { const el = $('#' + id); if (el) el.value = ''; } $('#query').value = ''; clearResultFacetFilters(); activeResultTab = 'all'; selectedResultOrdinal = null; allResults = []; lastResults = []; lastSearchMeta = null; resultsEl.innerHTML = ''; resultFacetsEl.hidden = true; resultFacetsEl.innerHTML = ''; updateSearchAssist(); updateTabsAndSummary(); renderDetailPanel(null); updateBoardBar(); statusEl.textContent = 'Cleared query, filters, and results.'; }
-
-
-const baseParamsForEdge = params;
-params = function() {
-  const p = baseParamsForEdge();
-  p.set('slackWeight', $('#slackWeight')?.value || '70');
-  p.set('obsidianWeight', $('#obsidianWeight')?.value || '30');
-  if ($('#includeDms')?.value) p.set('includeDms', $('#includeDms').value);
-  if ($('#tagFilter')?.value) p.set('tag', $('#tagFilter').value);
-  if ($('#folderFilter')?.value && $('#folderFilter').value !== 'Search folders…') p.set('folder', $('#folderFilter').value);
-  return p;
-};
-
-
-function showDialog(title, html) {
-  docTitle.textContent = title;
-  docBody.innerHTML = html;
-  dialog.showModal();
-}
-function savedSearches() { return JSON.parse(localStorage.getItem('qmdSavedSearches') || '[]'); }
-function setSavedSearches(items) { localStorage.setItem('qmdSavedSearches', JSON.stringify(items.slice(0, 50))); }
-function searchHistory() { return JSON.parse(localStorage.getItem('qmdSearchHistory') || '[]'); }
-function renderSearchItem(item, index, kind) {
-  const q = item.q || '(empty query)';
-  const when = item.at ? new Date(item.at).toLocaleString() : '';
-  return `<div class="dialog-item"><strong>${escapeHtml(item.name || q)}</strong><span class="hint">${escapeHtml(q)} ${when ? '· ' + escapeHtml(when) : ''}</span><div class="dialog-actions"><button type="button" data-run-${kind}="${index}">Run</button><button type="button" data-copy-${kind}="${index}">Copy URL</button><button type="button" data-delete-${kind}="${index}">Delete</button></div></div>`;
-}
-function openSavedSearches() {
-  const items = savedSearches();
-  showDialog('Saved searches', `<div class="dialog-list">${items.length ? items.map((item, i) => renderSearchItem(item, i, 'saved')).join('') : '<p class="hint">No saved searches yet. Run or compose a search, then use Save search.</p>'}</div>`);
-}
-function openHistory() {
-  const items = searchHistory();
-  showDialog('Search history', `<div class="dialog-list">${items.length ? items.slice(0, 25).map((item, i) => renderSearchItem(item, i, 'history')).join('') : '<p class="hint">No search history yet.</p>'}</div>`);
-}
-function openSaveSearchDialog() {
-  const q = $('#query').value.trim();
-  showDialog('Save search', `<div class="field-row"><label>Name <input id="saveSearchName" type="text" value="${escapeHtml(q || 'Untitled search')}" /></label></div><p class="hint">Saves the query and current filters locally in this browser.</p><div class="dialog-actions"><button type="button" id="confirmSaveSearch">Save</button><button type="button" id="openSavedSearches">View saved searches</button></div>`);
-  setTimeout(() => $('#saveSearchName')?.focus(), 0);
-}
-function applySearchParamsString(value) {
-  const p = new URLSearchParams(String(value || ''));
-  if (p.has('q')) $('#query').value = p.get('q') || '';
-  if (p.has('mode')) setMode(p.get('mode'));
-  for (const id of ['limit','sort','channel','user','dateFrom','dateTo','within','tagFilter','folderFilter','includeDms']) {
-    const el = $('#' + id); if (el && p.has(id === 'limit' ? 'n' : id)) el.value = p.get(id === 'limit' ? 'n' : id) || '';
+    const response = await fetch('/health');
+    const health = await response.json();
+    if (!response.ok || !health.ok) throw new Error(health.error || 'unhealthy');
+    setStatus(`Service OK. Max results ${health.maxResults}. Root ${health.root}.`);
+  } catch (error) {
+    setStatus(`Service check failed: ${error.message}`, 'bad');
   }
-  if (p.has('collection')) {
-    const selected = new Set(String(p.get('collection') || '').split(','));
-    document.querySelectorAll('input[name="collection"]').forEach((input) => { input.checked = selected.has(input.value); });
-  }
-  updateSearchAssist();
 }
-function itemUrl(item) { return `${location.origin}${location.pathname}?${item.params || ''}`; }
-
-// Edge UI event wiring.
-document.querySelectorAll('.mode-pill').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.mode)));
-document.querySelectorAll('[data-range]').forEach((button) => button.addEventListener('click', () => { if (button.dataset.range !== 'custom') setDateRange(button.dataset.range); }));
-for (const [id, changed] of [['slackWeight','slack'], ['obsidianWeight','obsidian']]) { const el = $('#' + id); if (el) el.addEventListener('input', () => updateSourceWeights(changed)); }
-document.querySelectorAll('[data-result-tab]').forEach((button) => button.addEventListener('click', () => { activeResultTab = button.dataset.resultTab; selectedResultOrdinal = null; renderVisibleResults(); }));
-document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { currentViewMode = button.dataset.view; document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b === button)); renderVisibleResults(); }));
-document.querySelectorAll('[data-suggest]').forEach((button) => button.addEventListener('click', () => { $('#query').value = button.dataset.suggest; search(); }));
-$('#sort').addEventListener('change', () => { sortCurrentResults($('#sort').value); statusEl.textContent = `Sorted current results by ${$('#sort').selectedOptions[0]?.textContent || $('#sort').value}. Re-run search to fetch more in this order.`; });
-
-document.querySelectorAll('[data-tag-chip]').forEach((button) => button.addEventListener('click', () => {
-  $('#tagFilter').value = button.dataset.tagChip;
-  $('#within').value = button.dataset.tagChip;
-  updateSearchAssist();
-  statusEl.textContent = `Tag filter staged: ${button.dataset.tagChip}`;
-}));
-$('#channelChips').addEventListener('click', (event) => {
-  if (event.target.closest('[data-clear-sidebar="channel"]')) {
-    $('#channel').value = '';
-    updateSearchAssist();
-    renderVisibleResults();
+function clearFilters() {
+  for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within']) $('#' + id).value = '';
+  setStatus('Filters cleared.');
+}
+form.addEventListener('submit', (event) => { event.preventDefault(); search(); });
+$('#query').addEventListener('input', renderQuerySuggest);
+$('#query').addEventListener('click', renderQuerySuggest);
+$('#query').addEventListener('keydown', (event) => {
+  const box = $('#querySuggest');
+  if (box.hidden) return;
+  if (event.key === 'ArrowDown') { event.preventDefault(); suggestState.active = Math.min(suggestState.active + 1, suggestState.items.length - 1); paintQuerySuggestActive(); }
+  else if (event.key === 'ArrowUp') { event.preventDefault(); suggestState.active = Math.max(suggestState.active - 1, 0); paintQuerySuggestActive(); }
+  else if (event.key === 'Enter' || event.key === 'Tab') { if (applyQuerySuggestion()) event.preventDefault(); }
+  else if (event.key === 'Escape') { box.hidden = true; }
+});
+$('#querySuggest').addEventListener('mousedown', (event) => {
+  const button = event.target.closest('button[data-suggest-index]');
+  if (!button) return;
+  event.preventDefault();
+  applyQuerySuggestion(Number(button.dataset.suggestIndex));
+});
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.query-box')) $('#querySuggest').hidden = true;
+});
+$('#clearButton').addEventListener('click', () => { $('#query').value = ''; $('#querySuggest').hidden = true; clearFilters(); resultsEl.innerHTML = ''; lastResults = []; $('#query').focus(); });
+$('#clearFiltersButton').addEventListener('click', clearFilters);
+$('#healthButton').addEventListener('click', checkHealth);
+$('#closeDialog').addEventListener('click', () => dialog.close());
+resultsEl.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const article = event.target.closest('.result');
+  const result = lastResults[Number(article.dataset.index)];
+  if (!result) return;
+  const action = button.dataset.action;
+  if (action === 'open') return openResult(result);
+  if (action === 'copy-uri') return copyText(result.file || result.path || '');
+  if (action === 'copy-snippet') return copyText(result.snippet || result.text || '');
+  if (action === 'copy-citation') return copyText(citationFor(result));
+  if (action === 'json') {
+    docTitle.textContent = 'Result JSON';
+    docBody.innerHTML = `<pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre>`;
+    dialog.showModal();
   }
 });
-$('#selectedUserChip').addEventListener('click', () => {
-  if ($('#user').value) {
-    $('#user').value = '';
-    updateSearchAssist();
-    renderVisibleResults();
-  }
-});
-$('#clearQuery').addEventListener('click', () => { $('#query').value = ''; updateSearchAssist(); $('#query').focus(); });
-$('#clearAllTop').addEventListener('click', clearAllFilters);
-$('#clearFilters').addEventListener('click', clearAllFilters);
-$('#queryTokens').addEventListener('click', (event) => { const remove = event.target.closest('[data-remove-token]'); if (remove) { const tokens = parseSearchDecorators($('#query').value); const t = tokens[Number(remove.dataset.removeToken)]; if (t) { const q = $('#query').value; $('#query').value = (q.slice(0, t.start) + q.slice(t.end)).replace(/\s+/g, ' ').trim(); updateSearchAssist(); } } if (event.target.closest('#addFilterChip')) $('#query').focus(); });
-resultsEl.addEventListener('click', (event) => { if (event.target.closest('button[data-action]')) return; const article = event.target.closest('.result'); if (!article) return; selectResult(Number(article.dataset.index)); });
-$('#detailPane').addEventListener('click', (event) => { if (event.target.closest('#backToResults')) { document.querySelector('.results-panel')?.scrollIntoView({block: 'start'}); return; } if (event.target.closest('#prevResult')) return selectResult(Math.max(0, (selectedResultOrdinal ?? 0) - 1)); if (event.target.closest('#nextResult')) return selectResult(Math.min(lastResults.length - 1, (selectedResultOrdinal ?? 0) + 1)); if (event.target.closest('[data-detail-open]')) { const r = lastResults[selectedResultOrdinal ?? 0]; if (r) { docTitle.textContent = r.file || r.path || 'Result'; docBody.textContent = 'Loading…'; dialog.showModal(); fetch(`/api/get?target=${encodeURIComponent(r.file || r.path || '')}&lines=260`).then(async (response) => { const body = await response.text(); docBody.innerHTML = response.ok ? `<pre>${highlight(body)}</pre>` : `<pre>${highlight(`Error: ${body}`)}</pre>`; }); } } });
-$('#saveSearch').addEventListener('click', openSaveSearchDialog);
-$('#shareSearch').addEventListener('click', () => copyText(`${location.origin}${location.pathname}?${params()}`));
-$('#historyButton').addEventListener('click', openHistory);
-$('#docsButton').addEventListener('click', () => showDialog('Search UI shortcuts', '<p>Use decorators like <code>user:name</code>, <code>from:name</code>, <code>in:#channel</code>, <code>after:YYYY-MM-DD</code>, <code>before:YYYY-MM-DD</code>, <code>corpus:wiki</code>, <code>mode:hybrid</code>.</p><p>Saved searches and history are stored locally in this browser. Suggestions come only from this workspace’s local facet metadata.</p>'));
-
-$('#moreMenu').addEventListener('click', () => showDialog('More actions', '<div class="dialog-actions"><button type="button" data-modal-action="save">Save current search</button><button type="button" data-modal-action="history">Open history</button><button type="button" data-modal-action="export">Export current results JSON</button><button type="button" data-modal-action="help">Help</button></div>'));
-document.querySelectorAll('[data-facet-action]').forEach((button) => button.addEventListener('click', () => {
-  const action = button.dataset.facetAction;
-  if (action === 'dates') { $('#sort').value = 'date-desc'; }
-  if (action === 'users') { $('#user').focus(); }
-  if (action === 'channels') { $('#channel').focus(); }
-  if (action === 'topics') { $('#tagFilter').focus(); }
-  renderResultFacets();
-  resultFacetsEl.hidden = false;
-  statusEl.textContent = `${button.textContent.trim()} facets are available for the current result set.`;
-}));
-
-const savedBoard = localStorage.getItem('qmdInvestigationBoard');
-if (savedBoard) $('#boardSelect').value = savedBoard;
-$('#boardSelect').addEventListener('change', () => {
-  localStorage.setItem('qmdInvestigationBoard', $('#boardSelect').value);
-  statusEl.textContent = `Investigation board set to: ${$('#boardSelect').value}`;
-  updateBoardBar();
-});
-$('#openBoard').addEventListener('click', () => { $('#telemetry').open = true; $('#telemetry').scrollIntoView({block: 'nearest'}); });
-$('#exportBoard').addEventListener('click', () => { const blob = new Blob([JSON.stringify({query: $('#query').value, results: allResults}, null, 2)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'qmd-investigation-board.json'; a.click(); URL.revokeObjectURL(a.href); });
-$('#summarizeBoard').addEventListener('click', () => copyText(`Search summary: ${allResults.length} results for "${$('#query').value}". Slack: ${tabCounts(allResults).slack}, Obsidian: ${tabCounts(allResults).obsidian}.`));
-updateSourceWeights();
-renderDetailPanel(null);
-
-
-// Wire auxiliary Edge controls so every visible control has a behavior.
-let originalQuerySnapshot = '';
-$('#aiAssist').addEventListener('click', () => { setMode('hybrid'); originalQuerySnapshot = $('#query').value; $('#nlInterpretation').textContent = `“${$('#query').value || 'Search across Slack and notes'}” interpreted for hybrid search`; statusEl.textContent = 'AI assist set Hybrid mode; edit the interpreted query or search.'; $('#query').focus(); });
-$('#showOriginal').addEventListener('click', () => showDialog('Query details', `<p><strong>Query:</strong> ${escapeHtml($('#query').value || '(empty)')}</p><p><strong>Interpreted as:</strong> ${escapeHtml($('#nlInterpretation').textContent || '')}</p><p class="hint">Decorator validation and suggestions use real local facet metadata only.</p>`));
-$('#whyResults').addEventListener('click', () => showDialog('Why these results?', `<p>Backend: <strong>${escapeHtml(lastSearchMeta?.backend || 'not searched yet')}</strong></p><p>Mode: <strong>${escapeHtml($('#mode').value)}</strong>; collections: <strong>${escapeHtml(selectedCollections())}</strong>; sort: <strong>${escapeHtml($('#sort').value)}</strong>.</p><p>${escapeHtml(lastSearchMeta?.warning || 'QMD ranking, filters, and returned-result facets determine what is shown.')}</p>`));
-$('#includeDms').addEventListener('change', () => { updateSearchAssist(); statusEl.textContent = $('#includeDms').value ? `DM filter set to: ${$('#includeDms').value}. Re-run search to apply it.` : 'DM filter cleared; all conversations included on next search.'; });
-$('#addUserChip').addEventListener('click', () => { $('#user').focus(); statusEl.textContent = 'Type or choose a user, then run Search.'; });
-$('#tagFilter').addEventListener('input', () => { const value = $('#tagFilter').value.trim(); if (value && !$('#within').value) $('#within').value = value.replace(/^#/, ''); });
-$('#folderFilter').addEventListener('change', () => { if ($('#folderFilter').value && $('#folderFilter').value !== 'Search folders…') { $('#within').value = $('#folderFilter').value; statusEl.textContent = 'Folder filter mapped to returned-result text filter.'; } });
-$('#timelineView').addEventListener('click', () => { $('#sort').value = 'date-desc'; activeResultTab = 'all'; sortCurrentResults('date-desc'); statusEl.textContent = 'Timeline view: sorted current results newest first.'; });
-
-
-document.querySelectorAll('[data-nav-action]').forEach((button) => button.addEventListener('click', () => {
-  const action = button.dataset.navAction;
-  if (action === 'saved') return openSavedSearches();
-  if (action === 'history') return openHistory();
-  if (action === 'settings') return $('#docsButton').click();
-}));
-
-
-dialog.addEventListener('click', (event) => {
-  const confirm = event.target.closest('#confirmSaveSearch');
-  if (confirm) {
-    const items = savedSearches();
-    const name = $('#saveSearchName')?.value?.trim() || $('#query').value.trim() || 'Untitled search';
-    items.unshift({name, q: $('#query').value, params: String(params()), at: new Date().toISOString()});
-    setSavedSearches(items);
-    statusEl.textContent = `Saved search: ${name}`;
-    dialog.close();
-    return;
-  }
-  if (event.target.closest('#openSavedSearches')) return openSavedSearches();
-  const modalAction = event.target.closest('[data-modal-action]')?.dataset.modalAction;
-  if (modalAction === 'save') return openSaveSearchDialog();
-  if (modalAction === 'history') return openHistory();
-  if (modalAction === 'help') return $('#docsButton').click();
-  if (modalAction === 'export') {
-    const blob = new Blob([JSON.stringify({query: $('#query').value, results: allResults}, null, 2)], {type: 'application/json'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'qmd-search-results.json'; a.click(); URL.revokeObjectURL(a.href);
-    statusEl.textContent = 'Exported current results JSON.'; dialog.close(); return;
-  }
-  for (const kind of ['saved', 'history']) {
-    const run = event.target.closest(`[data-run-${kind}]`);
-    const copy = event.target.closest(`[data-copy-${kind}]`);
-    const del = event.target.closest(`[data-delete-${kind}]`);
-    const items = kind === 'saved' ? savedSearches() : searchHistory();
-    const setter = kind === 'saved' ? setSavedSearches : (next) => localStorage.setItem('qmdSearchHistory', JSON.stringify(next.slice(0, 50)));
-    if (run) { const item = items[Number(run.dataset[`run${kind[0].toUpperCase()+kind.slice(1)}`])]; if (item) { applySearchParamsString(item.params); dialog.close(); search(); } return; }
-    if (copy) { const item = items[Number(copy.dataset[`copy${kind[0].toUpperCase()+kind.slice(1)}`])]; if (item) copyText(itemUrl(item)); return; }
-    if (del) { const index = Number(del.dataset[`delete${kind[0].toUpperCase()+kind.slice(1)}`]); items.splice(index, 1); setter(items); kind === 'saved' ? openSavedSearches() : openHistory(); return; }
-  }
-});
-
-$('#refreshTelemetry').addEventListener('click', loadTelemetry);
-loadTelemetry();
 loadFacets();
 </script>
 </body>

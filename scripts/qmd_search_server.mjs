@@ -598,18 +598,80 @@ async function localMarkdownSearch(built, startedAt) {
   const limited = weighted.slice(0, built.requestedLimit);
   return {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, backend: 'local-markdown-fallback', warning: 'qmd binary was unavailable; searched local markdown files instead.', filters: built.filters, maxResults: MAX_RESULTS, fetched: results.length, matched: filtered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited};
 }
+function existingOrCaseAdjustedSlackChunkPath(rel) {
+  const direct = path.join(ROOT, 'qmd/slack-api-chunks', rel);
+  if (existsSync(direct)) return direct;
+  const parts = rel.split('/');
+  if (parts.length > 1) {
+    parts[1] = parts[1].toUpperCase();
+    const adjusted = path.join(ROOT, 'qmd/slack-api-chunks', parts.join('/'));
+    if (existsSync(adjusted)) return adjusted;
+  }
+  return direct;
+}
 function localPathFromQmdUri(target) {
   const value = String(target || '');
   if (value.startsWith('qmd://llm-wiki/')) return path.join(ROOT, 'wiki', value.slice('qmd://llm-wiki/'.length));
-  if (value.startsWith('qmd://slack-api-chunks/')) return path.join(ROOT, 'qmd/slack-api-chunks', value.slice('qmd://slack-api-chunks/'.length));
+  if (value.startsWith('qmd://slack-api-chunks/')) return existingOrCaseAdjustedSlackChunkPath(value.slice('qmd://slack-api-chunks/'.length));
   if (value.startsWith('qmd://slack-raw/')) return path.join(ROOT, 'raw/slack', value.slice('qmd://slack-raw/'.length));
   if (value.startsWith('qmd://local/')) return path.join(ROOT, value.slice('qmd://local/'.length));
   return '';
 }
 
 
+
+function lowQualitySnippet(snippet) {
+  const s = String(snippet || '').trim();
+  if (!s) return true;
+  return /^\d+:\s*@@/.test(s) || /^\d+:\s*---/m.test(s) || /source:\s*slack-api-chunk/.test(s) || s.split(/\r?\n/).filter(Boolean).length <= 4;
+}
+function searchTermsForSnippet(query) {
+  return plainTerms(query).filter((term) => !['slack', 'source', 'chunk'].includes(term));
+}
+function stripFrontmatterLines(lines) {
+  if (lines[0]?.trim() !== '---') return lines;
+  const end = lines.slice(1).findIndex((line) => line.trim() === '---');
+  return end >= 0 ? lines.slice(end + 2) : lines;
+}
+function usefulMarkdownSnippet(body, query) {
+  const terms = searchTermsForSnippet(query);
+  const lines = stripFrontmatterLines(String(body || '').split(/\r?\n/));
+  let headingIndexes = [];
+  for (let i = 0; i < lines.length; i++) if (/^#{2,3}\s+/.test(lines[i])) headingIndexes.push(i);
+  if (!headingIndexes.length) for (let i = 0; i < lines.length; i++) if (/^#{1,3}\s+/.test(lines[i])) headingIndexes.push(i);
+  if (!headingIndexes.length) {
+    const idx = terms.length ? lines.findIndex((line) => terms.some((term) => line.toLowerCase().includes(term))) : -1;
+    return lines.slice(Math.max(0, idx < 0 ? 0 : idx - 2), Math.max(0, idx < 0 ? 0 : idx - 2) + 24).join('\n').trim();
+  }
+  let chosen = headingIndexes[0];
+  for (const idx of headingIndexes) {
+    const next = headingIndexes.find((n) => n > idx) ?? lines.length;
+    const block = lines.slice(idx, next).join('\n').toLowerCase();
+    if (terms.some((term) => block.includes(term))) { chosen = idx; break; }
+  }
+  const next = headingIndexes.find((n) => n > chosen) ?? lines.length;
+  return lines.slice(chosen, Math.min(next, chosen + 36)).join('\n').trim();
+}
+async function withReadableSnippets(results, built) {
+  const out = [];
+  for (const result of results) {
+    if (!lowQualitySnippet(result.snippet || result.text || '')) { out.push(result); continue; }
+    const local = localPathFromQmdUri(result.file || result.path || '');
+    if (!local) { out.push(result); continue; }
+    try {
+      const body = await readFile(local, 'utf8');
+      const snippet = usefulMarkdownSnippet(body, built.cleanQuery || built.effective.get('q') || '');
+      out.push(snippet ? {...result, snippet, fullSnippetLoaded: true} : result);
+    } catch {
+      out.push(result);
+    }
+  }
+  return out;
+}
+
 async function finishSearchFromParsed(parsed, built, startedAt, warning = '') {
-  const enriched = enrich(parsed);
+  const readable = await withReadableSnippets(parsed, built);
+  const enriched = enrich(readable);
   const filtered = applyFilters(enriched, built.effective);
   const exactUserFiltered = await applyExactUserSnippets(filtered, built.effective);
   const sorted = sortResults(exactUserFiltered, String(built.effective.get('sort') || 'relevance'));

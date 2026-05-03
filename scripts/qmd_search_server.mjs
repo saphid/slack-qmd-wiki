@@ -289,7 +289,7 @@ function buildSearchArgs(originalParams) {
   } else throw new Error(`unknown mode: ${mode}`);
   args.push('-n', String(fetchLimit), '--json', '--line-numbers');
   for (const c of collections) args.push('-c', c);
-  return {args, requestedLimit, fetchLimit, effective, decorators, cleanQuery: query, filters};
+  return {args, requestedLimit, fetchLimit, effective, decorators, cleanQuery: query, filters, collections, mode};
 }
 
 async function readJsonIfExists(file, fallback) {
@@ -607,27 +607,53 @@ function localPathFromQmdUri(target) {
   return '';
 }
 
+
+async function finishSearchFromParsed(parsed, built, startedAt, warning = '') {
+  const enriched = enrich(parsed);
+  const filtered = applyFilters(enriched, built.effective);
+  const exactUserFiltered = await applyExactUserSnippets(filtered, built.effective);
+  const sorted = sortResults(exactUserFiltered, String(built.effective.get('sort') || 'relevance'));
+  const weighted = applySourceWeights(sorted, built.effective);
+  const limited = weighted.slice(0, built.requestedLimit);
+  return {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, filters: built.filters, warning, maxResults: MAX_RESULTS, fetched: parsed.length, matched: exactUserFiltered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited};
+}
+async function lexicalFallbackSearch(built, startedAt, reason) {
+  const query = built.cleanQuery || stripQuotes(built.effective.get('user') || '') || normalizeChannel(built.effective.get('channel') || '') || 'source slack';
+  const args = ['search', query, '-n', String(built.fetchLimit), '--json', '--line-numbers'];
+  for (const c of built.collections || collectionsFrom(built.effective.get('collection'))) args.push('-c', c);
+  const fallbackBuilt = {...built, args, mode: 'lex'};
+  const result = await runQmd(args, 60000);
+  if (result.code !== 0) {
+    if (result.code === 127 || /ENOENT|not found/i.test(result.stderr)) return localMarkdownSearch(fallbackBuilt, startedAt);
+    throw new Error(`lexical fallback failed: ${result.stderr.slice(-1000)}`);
+  }
+  const parsed = JSON.parse(result.stdout || '[]');
+  return finishSearchFromParsed(parsed, fallbackBuilt, startedAt, `Hybrid search unavailable (${reason}); fell back to lexical/BM25.`);
+}
+
 async function handleSearch(req, res, url) {
   const startedAt = Date.now();
   let built;
   try { built = buildSearchArgs(url.searchParams); }
   catch (error) { return json(res, 400, {error: error.message}); }
-  const timeout = built.args[0] === 'query' ? 180000 : 60000;
+  const timeout = built.args[0] === 'query' ? 60000 : 60000;
   const result = await runQmd(built.args, timeout);
   if (result.code !== 0) {
     if (result.code === 127 || /ENOENT|not found/i.test(result.stderr)) return json(res, 200, await localMarkdownSearch(built, startedAt));
+    if (built.args[0] === 'query') {
+      try { return json(res, 200, await lexicalFallbackSearch(built, startedAt, `qmd exited ${result.code}`)); }
+      catch (fallbackError) { return json(res, 500, {error: fallbackError.message}); }
+    }
     return json(res, 500, {error: 'qmd failed', code: result.code, signal: result.signal, stderr: result.stderr.slice(-4000)});
   }
   try {
     const parsed = JSON.parse(result.stdout || '[]');
-    const enriched = enrich(parsed);
-    const filtered = applyFilters(enriched, built.effective);
-    const exactUserFiltered = await applyExactUserSnippets(filtered, built.effective);
-    const sorted = sortResults(exactUserFiltered, String(built.effective.get('sort') || 'relevance'));
-    const weighted = applySourceWeights(sorted, built.effective);
-    const limited = weighted.slice(0, built.requestedLimit);
-    return json(res, 200, {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, filters: built.filters, maxResults: MAX_RESULTS, fetched: parsed.length, matched: exactUserFiltered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited});
+    return json(res, 200, await finishSearchFromParsed(parsed, built, startedAt));
   } catch (error) {
+    if (built.args[0] === 'query') {
+      try { return json(res, 200, await lexicalFallbackSearch(built, startedAt, 'non-JSON qmd query output')); }
+      catch (fallbackError) { return json(res, 500, {error: fallbackError.message, stdout: result.stdout.slice(0, 1000), stderr: result.stderr.slice(-1000)}); }
+    }
     return json(res, 500, {error: 'qmd returned non-json output', stdout: result.stdout.slice(0, 4000), stderr: result.stderr.slice(-4000)});
   }
 }

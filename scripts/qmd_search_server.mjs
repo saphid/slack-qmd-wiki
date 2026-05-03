@@ -148,7 +148,7 @@ function isDmLikeResult(result) {
     || /(^|\/)im[-_]/i.test(file);
 }
 function dmScope(params) {
-  return String(params.get('includeDms') || 'Exclude DMs').trim().toLowerCase();
+  return String(params.get('includeDms') || '').trim().toLowerCase();
 }
 
 function applyFilters(results, params) {
@@ -253,6 +253,18 @@ async function applyExactUserSnippets(results, params) {
   return out;
 }
 
+
+function activePostFilters(params) {
+  const out = [];
+  for (const key of ['channel', 'user', 'dateFrom', 'dateTo', 'within', 'tag', 'folder']) {
+    const value = String(params.get(key) || '').trim();
+    if (value && value !== 'Search folders…') out.push(`${key}=${value}`);
+  }
+  const dm = dmScope(params);
+  if (dm === 'exclude dms' || dm === 'only selected users') out.push(`includeDms=${params.get('includeDms')}`);
+  return out;
+}
+
 function buildSearchArgs(originalParams) {
   const {effective, decorators, cleanQuery} = effectiveParams(originalParams);
   let query = cleanQuery || stripQuotes(effective.get('user') || '') || normalizeChannel(effective.get('channel') || '') || 'source slack';
@@ -260,8 +272,9 @@ function buildSearchArgs(originalParams) {
   const mode = String(effective.get('mode') || 'lex');
   const requestedLimit = Math.min(Math.max(Number(effective.get('n') || 25), 1), MAX_RESULTS);
   const collections = collectionsFrom(effective.get('collection'));
-  const hasPostFilter = ['channel', 'user', 'dateFrom', 'dateTo', 'within', 'includeDms', 'tag', 'folder'].some((key) => String(effective.get(key) || '').trim());
-  const fetchLimit = hasPostFilter ? Math.min(MAX_RESULTS, Math.max(requestedLimit * 5, 100)) : requestedLimit;
+  const filters = activePostFilters(effective);
+  const hasPostFilter = filters.length > 0;
+  const fetchLimit = hasPostFilter ? Math.min(MAX_RESULTS, Math.max(requestedLimit * 20, 250)) : requestedLimit;
 
   const user = stripQuotes(effective.get('user') || '');
   if (mode === 'lex' && user && !query.toLowerCase().includes(user.toLowerCase())) query = `${query} "${user}"`;
@@ -276,7 +289,7 @@ function buildSearchArgs(originalParams) {
   } else throw new Error(`unknown mode: ${mode}`);
   args.push('-n', String(fetchLimit), '--json', '--line-numbers');
   for (const c of collections) args.push('-c', c);
-  return {args, requestedLimit, fetchLimit, effective, decorators, cleanQuery: query};
+  return {args, requestedLimit, fetchLimit, effective, decorators, cleanQuery: query, filters};
 }
 
 async function readJsonIfExists(file, fallback) {
@@ -583,7 +596,7 @@ async function localMarkdownSearch(built, startedAt) {
   const sorted = sortResults(filtered, String(built.effective.get('sort') || 'relevance'));
   const weighted = applySourceWeights(sorted, built.effective);
   const limited = weighted.slice(0, built.requestedLimit);
-  return {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, backend: 'local-markdown-fallback', warning: 'qmd binary was unavailable; searched local markdown files instead.', maxResults: MAX_RESULTS, fetched: results.length, matched: filtered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited};
+  return {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, backend: 'local-markdown-fallback', warning: 'qmd binary was unavailable; searched local markdown files instead.', filters: built.filters, maxResults: MAX_RESULTS, fetched: results.length, matched: filtered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited};
 }
 function localPathFromQmdUri(target) {
   const value = String(target || '');
@@ -613,7 +626,7 @@ async function handleSearch(req, res, url) {
     const sorted = sortResults(exactUserFiltered, String(built.effective.get('sort') || 'relevance'));
     const weighted = applySourceWeights(sorted, built.effective);
     const limited = weighted.slice(0, built.requestedLimit);
-    return json(res, 200, {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, maxResults: MAX_RESULTS, fetched: parsed.length, matched: exactUserFiltered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited});
+    return json(res, 200, {args: built.args, decorators: built.decorators, effectiveQuery: built.cleanQuery, filters: built.filters, maxResults: MAX_RESULTS, fetched: parsed.length, matched: exactUserFiltered.length, returned: limited.length, elapsedMs: Date.now() - startedAt, results: limited});
   } catch (error) {
     return json(res, 500, {error: 'qmd returned non-json output', stdout: result.stdout.slice(0, 4000), stderr: result.stderr.slice(-4000)});
   }

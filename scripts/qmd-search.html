@@ -32,7 +32,7 @@
     <div class="control-strip"><div class="mode-segments"><button class="mode-pill" type="button" data-mode="lex">Lexical (BM25)</button><button class="mode-pill" type="button" data-mode="vec">Semantic (Vector)</button><button class="mode-pill active" type="button" data-mode="hybrid">Hybrid <span class="tiny-badge">Best balance</span></button><input id="mode" type="hidden" value="hybrid" /></div><label>Results <select id="limit"><option>10</option><option selected>25</option><option>50</option><option>100</option><option>250</option><option>500</option></select></label><label>Sort <select id="sort"><option value="relevance" selected>Relevance</option><option value="date-desc">Newest first</option><option value="date-asc">Oldest first</option><option value="channel">Channel/path</option><option value="corpus">Corpus</option></select></label><label class="rerank">AI Rerank <input id="rerank" type="checkbox" checked /></label><button class="why-link" id="whyResults" type="button">ⓘ Why these results?</button><div class="suggestions"><span>Did you mean:</span><button type="button" data-suggest="camera tracking">camera tracking</button><button type="button" data-suggest="cameras tracking">cameras tracking</button></div></div>
     <main class="layout">
       <aside><div class="side-section"><div class="side-title">Sources</div><label class="source-option"><input type="checkbox" name="collection" value="chunks" checked /> 🌈 Slack</label><div class="source-slider"><span>Slack</span><input id="slackWeight" type="range" min="0" max="100" value="70"/><span id="slackWeightLabel">70%</span></div><label class="source-option"><input type="checkbox" name="collection" value="wiki" checked /> 💎 Obsidian</label><div class="source-slider"><span>Obsidian</span><input id="obsidianWeight" type="range" min="0" max="100" value="30"/><span id="obsidianWeightLabel">30%</span></div><label class="source-option"><input type="checkbox" name="collection" value="raw" /> 📄 Raw Slack</label></div>
-        <div class="side-section"><div class="side-title">Slack filters</div><label>Channels <input id="channel" type="text" list="channelOptions" placeholder="Search channels…" /></label><div id="channelChips" class="filter-chip-row"></div><label>DM scope <select id="includeDms"><option>Exclude DMs</option><option>Only selected users</option><option>Include all DMs</option></select></label><label>Users <div class="filter-chip-row"><span class="chip" id="selectedUserChip">No user selected</span><button type="button" class="chip" id="addUserChip">+ Add</button></div><div class="avatar-row" id="userAvatarRow"></div><input id="user" type="text" list="userOptions" placeholder="Select users…" /></label><label>Date range <div class="quick-row"><button type="button" data-range="1">24h</button><button type="button" data-range="7">7d</button><button type="button" data-range="30">30d</button><button type="button" data-range="90">90d</button><button type="button" data-range="custom" class="active">Custom</button></div><div class="date-grid"><input id="dateFrom" type="date" /><span>→</span><input id="dateTo" type="date" /></div></label></div>
+        <div class="side-section"><div class="side-title">Slack filters</div><label>Channels <input id="channel" type="text" list="channelOptions" placeholder="Search channels…" /></label><div id="channelChips" class="filter-chip-row"></div><label>DM scope <select id="includeDms"><option value="">All conversations</option><option>Exclude DMs</option><option>Only selected users</option></select></label><label>Users <div class="filter-chip-row"><span class="chip" id="selectedUserChip">No user selected</span><button type="button" class="chip" id="addUserChip">+ Add</button></div><div class="avatar-row" id="userAvatarRow"></div><input id="user" type="text" list="userOptions" placeholder="Select users…" /></label><label>Date range <div class="quick-row"><button type="button" data-range="1">24h</button><button type="button" data-range="7">7d</button><button type="button" data-range="30">30d</button><button type="button" data-range="90">90d</button><button type="button" data-range="custom" class="active">Custom</button></div><div class="date-grid"><input id="dateFrom" type="date" /><span>→</span><input id="dateTo" type="date" /></div></label></div>
         <div class="side-section"><div class="side-title">Obsidian filters</div><label>Tags <input id="tagFilter" type="text" placeholder="Search tags…" /></label><div class="filter-chip-row" id="tagChips"><span class="hint">No wiki tag facets loaded.</span></div><label>Folders <select id="folderFilter"><option>Search folders…</option></select></label></div>
         <details class="side-section"><summary class="side-title">Advanced</summary><label>Filter result text <input id="within" type="text" placeholder="term within results" /></label></details><button type="button" id="clearFilters" class="clear-wide">Clear all filters</button>
       </aside>
@@ -397,7 +397,7 @@ async function search() {
     allResults = data.results || [];
     clearResultFacetFilters();
     const elapsed = ((performance.now() - started) / 1000).toFixed(1);
-    lastSearchMeta = {returned: data.returned, matched: data.matched, fetched: data.fetched, maxResults: data.maxResults, elapsed, backend: data.backend || 'qmd', warning: data.warning || ''};
+    lastSearchMeta = {returned: data.returned, matched: data.matched, fetched: data.fetched, maxResults: data.maxResults, elapsed, backend: data.backend || 'qmd', warning: data.warning || '', filters: data.filters || []};
     renderVisibleResults();
   } catch (error) {
     statusEl.textContent = `Error: ${error.message}`;
@@ -592,6 +592,11 @@ function renderQueryTokens() {
   const basics = [];
   const collection = selectedCollections();
   if (collection && collection !== 'all' && ($('#query').value.trim() || allResults.length)) basics.push({label: `source: ${collection}`});
+  for (const [id, label] of [['channel','channel'], ['user','user'], ['dateFrom','after'], ['dateTo','before'], ['within','within'], ['tagFilter','tag'], ['folderFilter','folder']]) {
+    const el = $('#' + id);
+    if (el && el.value && el.value !== 'Search folders…') basics.push({label: `${label}: ${el.value}`});
+  }
+  if ($('#includeDms')?.value) basics.push({label: `dm: ${$('#includeDms').value}`});
   host.innerHTML = tokens.map((t, i) => `<button type="button" class="chip" data-remove-token="${i}">${escapeHtml(t.key)}: ${escapeHtml(t.value)} <span class="token-remove">×</span></button>`).join('')
     + basics.map((t) => `<span class="chip">${escapeHtml(t.label)}</span>`).join('')
     + '<button type="button" class="chip" id="addFilterChip">＋ Add filter</button>';
@@ -681,7 +686,11 @@ function renderVisibleResults() {
   const visible = filteredResults();
   const elapsed = lastSearchMeta?.elapsed ? ` (${lastSearchMeta.elapsed}s)` : '';
   const filterText = hasResultFacetFilters() || activeResultTab !== 'all' ? `; ${visible.length} visible` : '';
-  if (lastSearchMeta) statusEl.innerHTML = `${lastSearchMeta.warning ? '<span class=\"pill fallback-warning\">Local markdown fallback</span> ' : ''}${lastSearchMeta.returned} results${filterText}; ${lastSearchMeta.matched} matched from ${lastSearchMeta.fetched} fetched${elapsed}.`;
+  if (lastSearchMeta) {
+    const activeFilters = (lastSearchMeta.filters || []).length ? ` Active filters: ${lastSearchMeta.filters.join(', ')}.` : '';
+    const zeroFiltered = lastSearchMeta.returned === 0 && lastSearchMeta.fetched > 0 && activeFilters ? '<span class="pill bad">Post-filters removed all candidates</span> ' : '';
+    statusEl.innerHTML = `${zeroFiltered}${lastSearchMeta.warning ? '<span class="pill fallback-warning">Local markdown fallback</span> ' : ''}${lastSearchMeta.returned} results${filterText}; ${lastSearchMeta.matched} matched from ${lastSearchMeta.fetched} fetched${elapsed}.${activeFilters}`;
+  }
   lastResults = visible;
   resultsEl.classList.toggle('grid-results', currentViewMode === 'grid');
   resultsEl.innerHTML = visible.map(resultHtml).join('') || '<p class="hint">No results match these filters.</p>';
@@ -703,7 +712,7 @@ async function search() {
     allResults = (data.results || []).map((r, i) => ({...r, ordinal: i}));
     clearResultFacetFilters();
     const elapsed = ((data.elapsedMs ?? (performance.now() - started)) / 1000).toFixed(2);
-    lastSearchMeta = {returned: data.returned, matched: data.matched, fetched: data.fetched, maxResults: data.maxResults, elapsed, backend: data.backend || 'qmd', warning: data.warning || ''};
+    lastSearchMeta = {returned: data.returned, matched: data.matched, fetched: data.fetched, maxResults: data.maxResults, elapsed, backend: data.backend || 'qmd', warning: data.warning || '', filters: data.filters || []};
     saveSearchHistory();
     renderVisibleResults();
   } catch (error) { statusEl.textContent = `Error: ${error.message}`; renderDetailPanel(null); }
@@ -750,7 +759,7 @@ params = function() {
   const p = baseParamsForEdge();
   p.set('slackWeight', $('#slackWeight')?.value || '70');
   p.set('obsidianWeight', $('#obsidianWeight')?.value || '30');
-  p.set('includeDms', $('#includeDms')?.value || '');
+  if ($('#includeDms')?.value) p.set('includeDms', $('#includeDms').value);
   if ($('#tagFilter')?.value) p.set('tag', $('#tagFilter').value);
   if ($('#folderFilter')?.value && $('#folderFilter').value !== 'Search folders…') p.set('folder', $('#folderFilter').value);
   return p;
@@ -869,7 +878,7 @@ let originalQuerySnapshot = '';
 $('#aiAssist').addEventListener('click', () => { setMode('hybrid'); originalQuerySnapshot = $('#query').value; $('#nlInterpretation').textContent = `“${$('#query').value || 'Search across Slack and notes'}” interpreted for hybrid search`; statusEl.textContent = 'AI assist set Hybrid mode; edit the interpreted query or search.'; $('#query').focus(); });
 $('#showOriginal').addEventListener('click', () => showDialog('Query details', `<p><strong>Query:</strong> ${escapeHtml($('#query').value || '(empty)')}</p><p><strong>Interpreted as:</strong> ${escapeHtml($('#nlInterpretation').textContent || '')}</p><p class="hint">Decorator validation and suggestions use real local facet metadata only.</p>`));
 $('#whyResults').addEventListener('click', () => showDialog('Why these results?', `<p>Backend: <strong>${escapeHtml(lastSearchMeta?.backend || 'not searched yet')}</strong></p><p>Mode: <strong>${escapeHtml($('#mode').value)}</strong>; collections: <strong>${escapeHtml(selectedCollections())}</strong>; sort: <strong>${escapeHtml($('#sort').value)}</strong>.</p><p>${escapeHtml(lastSearchMeta?.warning || 'QMD ranking, filters, and returned-result facets determine what is shown.')}</p>`));
-$('#includeDms').addEventListener('change', () => { statusEl.textContent = `DM filter set to: ${$('#includeDms').value}. Re-run search to apply related user filters.`; });
+$('#includeDms').addEventListener('change', () => { updateSearchAssist(); statusEl.textContent = $('#includeDms').value ? `DM filter set to: ${$('#includeDms').value}. Re-run search to apply it.` : 'DM filter cleared; all conversations included on next search.'; });
 $('#addUserChip').addEventListener('click', () => { $('#user').focus(); statusEl.textContent = 'Type or choose a user, then run Search.'; });
 $('#tagFilter').addEventListener('input', () => { const value = $('#tagFilter').value.trim(); if (value && !$('#within').value) $('#within').value = value.replace(/^#/, ''); });
 $('#folderFilter').addEventListener('change', () => { if ($('#folderFilter').value && $('#folderFilter').value !== 'Search folders…') { $('#within').value = $('#folderFilter').value; statusEl.textContent = 'Folder filter mapped to returned-result text filter.'; } });

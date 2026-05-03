@@ -156,6 +156,8 @@ function applyFilters(results, params) {
   const dateFrom = String(params.get('dateFrom') || '').trim();
   const dateTo = String(params.get('dateTo') || '').trim();
   const within = String(params.get('within') || '').trim().toLowerCase();
+  const tag = String(params.get('tag') || '').replace(/^#/, '').trim().toLowerCase();
+  const folder = String(params.get('folder') || '').trim().toLowerCase();
   const dm = dmScope(params);
   const user = stripQuotes(params.get('user') || '').toLowerCase();
   return results.filter((r) => {
@@ -167,6 +169,8 @@ function applyFilters(results, params) {
     const isDm = isDmLikeResult(r);
     if ((dm === 'exclude dms' || dm === 'select users…' || dm === 'select users...') && isDm) return false;
     if (dm === 'only selected users' && (!isDm || (user && !haystack.includes(user)))) return false;
+    if (folder && !String(r.file || r.path || '').toLowerCase().includes(folder)) return false;
+    if (tag && !haystack.includes(tag)) return false;
     if (within && !haystack.includes(within)) return false;
     return true;
   });
@@ -256,7 +260,7 @@ function buildSearchArgs(originalParams) {
   const mode = String(effective.get('mode') || 'lex');
   const requestedLimit = Math.min(Math.max(Number(effective.get('n') || 25), 1), MAX_RESULTS);
   const collections = collectionsFrom(effective.get('collection'));
-  const hasPostFilter = ['channel', 'user', 'dateFrom', 'dateTo', 'within', 'includeDms'].some((key) => String(effective.get(key) || '').trim());
+  const hasPostFilter = ['channel', 'user', 'dateFrom', 'dateTo', 'within', 'includeDms', 'tag', 'folder'].some((key) => String(effective.get(key) || '').trim());
   const fetchLimit = hasPostFilter ? Math.min(MAX_RESULTS, Math.max(requestedLimit * 5, 100)) : requestedLimit;
 
   const user = stripQuotes(effective.get('user') || '');
@@ -288,6 +292,21 @@ async function listRawMarkdown(dir, out = []) {
   }
   return out;
 }
+
+function tagsFromMarkdown(body) {
+  const tags = new Set();
+  const frontmatter = String(body || '').match(/^---\n([\s\S]*?)\n---/);
+  if (frontmatter) {
+    const block = frontmatter[1];
+    const inline = block.match(/^tags:\s*\[([^\]]+)\]/m);
+    if (inline) for (const item of inline[1].split(',')) { const tag = item.trim().replace(/^['"#]|['"]$/g, ''); if (tag) tags.add(tag); }
+    const list = block.match(/^tags:\s*\n((?:\s*-\s*[^\n]+\n?)+)/m);
+    if (list) for (const item of list[1].matchAll(/^\s*-\s*([^\n]+)/gm)) { const tag = item[1].trim().replace(/^['"#]|['"]$/g, ''); if (tag) tags.add(tag); }
+  }
+  for (const m of String(body || '').matchAll(/(^|\s)#([\p{L}\p{N}_/-]{2,})/gu)) tags.add(m[2]);
+  return [...tags];
+}
+
 async function buildFacets() {
   const now = Date.now();
   if (facetCache.data && facetCache.expires > now) return facetCache.data;
@@ -346,12 +365,29 @@ async function buildFacets() {
       }
     } catch {}
   }
+  const wikiTags = new Map();
+  const wikiFolders = new Map();
+  const wikiFiles = await listRawMarkdown(path.join(ROOT, 'wiki'));
+  for (const file of wikiFiles) {
+    const rel = path.relative(path.join(ROOT, 'wiki'), file).split(path.sep).join('/');
+    const folder = rel.includes('/') ? rel.split('/').slice(0, -1).join('/') : '(root)';
+    wikiFolders.set(folder, (wikiFolders.get(folder) || 0) + 1);
+    try { for (const tag of tagsFromMarkdown(await readFile(file, 'utf8'))) wikiTags.set(tag, (wikiTags.get(tag) || 0) + 1); } catch {}
+  }
+  const sortedChannels = [...channels.values()].sort((a, b) => (b.count || 0) - (a.count || 0) || a.name.localeCompare(b.name));
+  const sortedUsers = [...users.values()].sort((a, b) => (b.count || 0) - (a.count || 0) || a.name.localeCompare(b.name));
   const dates = [...dateSet].sort();
+  const decorators = ['after:YYYY-MM-DD', 'before:YYYY-MM-DD', 'corpus:wiki', 'corpus:raw', 'mode:hybrid', 'sort:newest'];
+  if (sortedUsers[0]) decorators.unshift(`user:${JSON.stringify(sortedUsers[0].name)}`);
+  if (sortedChannels[0]) decorators.unshift(`in:#${sortedChannels[0].name}`);
   const data = {
-    channels: [...channels.values()].sort((a, b) => (b.count || 0) - (a.count || 0) || a.name.localeCompare(b.name)),
-    users: [...users.values()].sort((a, b) => (b.count || 0) - (a.count || 0) || a.name.localeCompare(b.name)),
+    channels: sortedChannels,
+    users: sortedUsers,
+    wikiTags: [...wikiTags.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([name, count]) => ({name, count})),
+    wikiFolders: [...wikiFolders.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([name, count]) => ({name, count})),
     dates: {min: dates[0] || '', max: dates.at(-1) || ''},
-    decorators: ['from:"Jordan Example"', 'user:Jamie', 'in:#general', 'channel:random', 'after:2026-01-01', 'before:2026-02-01', 'on:2026-02-26', 'corpus:wiki', 'corpus:raw', 'mode:hybrid', 'sort:newest'],
+    sourceCounts: {channels: channels.size, users: users.size, wikiTags: wikiTags.size, wikiFolders: wikiFolders.size},
+    decorators,
   };
   facetCache = {expires: now + FACET_CACHE_MS, data};
   return data;

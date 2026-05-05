@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local CLI search for Slack QMD Wiki indexes."""
+"""Local CLI search for displayr-llm-wiki QMD indexes."""
 from __future__ import annotations
 import argparse
 import json
@@ -13,8 +13,16 @@ COLLECTIONS = {
     "slack": ["slack-raw"],
     "chunks": ["slack-api-chunks"],
     "api-chunks": ["slack-api-chunks"],
+    "conversation": ["slack-conversations"],
+    "conversations": ["slack-conversations"],
+    "batches": ["slack-conversations"],
+    "meeting": ["huddle-transcripts"],
+    "meetings": ["huddle-transcripts"],
+    "huddle": ["huddle-transcripts"],
+    "huddles": ["huddle-transcripts"],
+    "transcripts": ["huddle-transcripts"],
     "wiki": ["llm-wiki"],
-    "all": ["slack-api-chunks", "slack-raw", "llm-wiki"],
+    "all": ["slack-api-chunks", "slack-conversations", "huddle-transcripts", "slack-raw", "llm-wiki"],
 }
 
 
@@ -68,7 +76,7 @@ def build_args(ns: argparse.Namespace) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Search the llm-wiki QMD indexes for raw Slack chunks, raw Slack markdown, and generated wiki pages.",
+        description="Search the llm-wiki QMD indexes for Slack chunks, huddle transcripts, raw Slack markdown, and generated wiki pages.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("query", help="Search query. For --mode hybrid this may also be a QMD typed query document like 'lex: auth\nvec: how auth works'.")

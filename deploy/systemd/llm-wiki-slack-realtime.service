@@ -1,9 +1,9 @@
 [Unit]
-Description=Slack QMD Wiki near-real-time incremental chunk sync
-Documentation=file:%h/slack-qmd-wiki/docs/slack-realtime-sync.md
+Description=LLM wiki Slack near-real-time incremental chunk sync
+Documentation=file:%h/Work/Workspaces/displayr-llm-wiki/docs/slack-realtime-sync.md
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/slack-qmd-wiki
+WorkingDirectory=%h/Work/Workspaces/displayr-llm-wiki
 Environment=PATH=%h/.local/bin:%h/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=%h/slack-qmd-wiki/scripts/run_slack_realtime_update.sh
+ExecStart=%h/Work/Workspaces/displayr-llm-wiki/scripts/run_slack_realtime_update.sh

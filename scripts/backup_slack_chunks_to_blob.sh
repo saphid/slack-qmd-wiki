@@ -15,19 +15,15 @@ if state.exists():
 print('all-feeds')
 PY
 }
-ACCOUNT="${AZURE_STORAGE_ACCOUNT:-}"
-CONTAINER="${AZURE_STORAGE_CONTAINER:-slack-qmd-wiki-backups}"
+ACCOUNT="${AZURE_STORAGE_ACCOUNT:-cawalexarchives001}"
+CONTAINER="${AZURE_STORAGE_CONTAINER:-llm-wiki-slack-backups}"
 RUN_ID="${SLACK_BACKUP_RUN_ID:-$(default_slack_run_id)}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_DIR=".state/backups"
 mkdir -p "$BACKUP_DIR"
-if [[ -z "$ACCOUNT" ]]; then
-  echo "Set AZURE_STORAGE_ACCOUNT before running backup_slack_chunks_to_blob.sh" >&2
-  exit 2
-fi
 ARCHIVE="$BACKUP_DIR/llm-wiki-slack-${RUN_ID}-${STAMP}.tar.zst"
 MANIFEST="$BACKUP_DIR/llm-wiki-slack-${RUN_ID}-${STAMP}.manifest.json"
-BLOB_PREFIX="slack-qmd-wiki/${RUN_ID}"
+BLOB_PREFIX="displayr-llm-wiki/${RUN_ID}"
 BLOB_NAME="$BLOB_PREFIX/$(basename "$ARCHIVE")"
 MANIFEST_BLOB_NAME="$BLOB_PREFIX/$(basename "$MANIFEST")"
 LATEST_BLOB_NAME="$BLOB_PREFIX/latest.manifest.json"

@@ -1,6 +1,6 @@
-# Slack QMD Wiki
+# Displayr LLM Wiki
 
-A generic, local-first Slack-to-markdown knowledge pipeline. It downloads Slack messages your token can already access, stores raw API pages locally, and indexes materialized markdown with [QMD](https://www.npmjs.com/package/@tobilu/qmd) so an LLM agent can search and maintain a curated wiki.
+A private, local-first Slack-to-markdown knowledge pipeline. It downloads Slack messages your token can already access, stores raw API pages locally, and indexes materialized markdown with QMD so an LLM agent can search and maintain a curated wiki.
 
 This repository contains **code, docs, and examples only**. It intentionally does not contain Slack exports, API chunks, QMD indexes, `.env`, OAuth tokens, or runtime state.
 
@@ -10,7 +10,6 @@ This repository contains **code, docs, and examples only**. It intentionally doe
 - Near-real-time incremental polling every five minutes via a systemd user timer.
 - QMD materialization/indexing for lexical search over Slack chunks and wiki pages.
 - Optional localhost web search UI over QMD results.
-- Telemetry dashboard for Slack download progress, QMD index counts, realtime updates, and wiki size.
 - A persistent wiki workflow (`AGENTS.md`) that keeps source evidence separate from synthesized knowledge.
 
 ## Data and secret safety
@@ -46,8 +45,6 @@ links:read              # optional, useful for richer messages
 ## Setup
 
 ```bash
-git clone https://github.com/<owner>/slack-qmd-wiki.git
-cd slack-qmd-wiki
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
@@ -115,7 +112,9 @@ CLI:
 
 ```bash
 scripts/llm_wiki_search.py "OAuth refresh token" -n 10
-scripts/llm_wiki_search.py "deployment checklist" --collection chunks --json
+scripts/llm_wiki_search.py "qserver deploy" --collection chunks --json
+scripts/llm_wiki_search.py "qserver deploy" --collection conversations --json
+scripts/llm_wiki_search.py "release planning action items" --collection meetings
 ```
 
 Web UI:
@@ -126,6 +125,78 @@ curl -fsS http://127.0.0.1:8765/health
 ```
 
 See `docs/qmd-search.md` for UI features and query decorators.
+
+## Huddle and standup transcripts
+
+Transcript fetching is intentionally outside this repo. Use the existing Work
+skill/script to write sanitized `.txt` transcript folders under a local docs
+root such as `~/Work/Docs/huddle-transcripts-*` or
+`~/Work/Docs/standup-transcripts-*`. If QMD runs on the VM, copy those sanitized
+folders there first, for example:
+
+```bash
+rsync -av ~/Work/Docs/huddle-transcripts-* alex@vm:/home/alex/Work/Docs/
+rsync -av ~/Work/Docs/standup-transcripts-* alex@vm:/home/alex/Work/Docs/
+```
+
+Materialize and index the transcripts with the normal refresh path. Set `LLM_WIKI_INDEX_CONVERSATIONS=true` when you also want conversation-oriented Slack ingest chunks under `qmd/slack-conversations/`: Slack threads and transcripts are deterministic one-chunk cases; unthreaded channel messages can be grouped by a cheap/fast LLM into detected in-channel conversations.
+
+By default this falls back to deterministic heuristics so unattended refresh jobs do not hang on a missing LLM. For LLM channel segmentation, run with a local Ollama model or command-backed cheap model, and fan out by channel with workers:
+
+```bash
+# Local/private cheap option; pull the model once outside the script.
+ollama pull qwen2.5:7b-instruct
+SLACK_CONVERSATION_CHANNEL_MODE=llm-with-heuristic-fallback \
+SLACK_CONVERSATION_LLM_PROVIDER=ollama \
+SLACK_CONVERSATION_LLM_MODEL=qwen2.5:7b-instruct \
+SLACK_CONVERSATION_WORKERS=4 \
+python3 scripts/materialize_qmd_conversation_chunks.py --run-id "$SLACK_RUN_ID"
+```
+
+Or use Pi coding agent as the segmenter:
+
+```bash
+SLACK_CONVERSATION_CHANNEL_MODE=llm-with-heuristic-fallback \
+SLACK_CONVERSATION_LLM_PROVIDER=pi \
+SLACK_CONVERSATION_PI_MODEL=gemini-3-flash-preview \
+SLACK_CONVERSATION_WORKERS=3 \
+python3 scripts/materialize_qmd_conversation_chunks.py --run-id "$SLACK_RUN_ID"
+```
+
+Use `SLACK_CONVERSATION_CHANNEL_MODE=llm` when you want strict failure instead of heuristic fallback for any failed LLM window.
+
+```bash
+LLM_WIKI_INDEX_CONVERSATIONS=true scripts/refresh_qmd_hybrid_indexes.sh
+```
+
+For a narrow local run:
+
+```bash
+python3 scripts/materialize_qmd_huddle_transcripts.py --source-root ~/Work/Docs
+qmd collection add qmd/huddle-transcripts --name huddle-transcripts
+qmd update
+qmd embed --max-docs-per-batch "${QMD_MAX_DOCS_PER_BATCH:-200}" --max-batch-mb "${QMD_MAX_BATCH_MB:-64}"
+```
+
+Then query them lexically or semantically if the selected QMD embedding/model
+setup is available:
+
+```bash
+scripts/llm_wiki_search.py "decision action item" --collection meetings
+scripts/llm_wiki_search.py "why did we choose the rollout path" --collection meetings --mode hybrid --no-rerank
+```
+
+To hand new transcript evidence to the LLM-maintained wiki process, create an
+inbox manifest:
+
+```bash
+python3 scripts/create_huddle_transcript_wiki_manifest.py
+```
+
+The wiki maintainer should summarize durable meeting outcomes, decisions, risks,
+and action items into `wiki/` pages with compact citations to the materialized
+transcript path and `source_path`; it should not copy whole transcripts into the
+wiki.
 
 ## Wiki workflow
 
@@ -142,4 +213,4 @@ See `docs/qmd-search.md` for UI features and query decorators.
 scripts/check.sh
 ```
 
-The check compiles Python scripts, runs ShellCheck if installed, and validates the Node search server syntax if Node is installed.
+The check compiles Python scripts, optionally runs ShellCheck if installed, and validates the Node search server syntax if Node is installed.

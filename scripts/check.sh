@@ -3,6 +3,8 @@ set -euo pipefail
 ROOT="${LLM_WIKI_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$ROOT"
 python3 -m compileall -q scripts
+python3 scripts/smoke_huddle_transcript_ingestion.py
+python3 scripts/smoke_conversation_chunking.py
 if command -v shellcheck >/dev/null 2>&1; then
   shellcheck scripts/*.sh
 else

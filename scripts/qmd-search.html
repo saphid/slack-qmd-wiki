@@ -73,7 +73,7 @@
       </div>
       <div class="controls">
         <label>Mode
-          <select id="mode"><option value="lex">Lexical</option><option value="hybrid">Hybrid</option><option value="vec">Vector</option></select>
+          <select id="mode"><option value="lex">Lexical</option><option value="vec" selected>Vector (semantic, fast)</option><option value="hybrid">Hybrid (slower)</option></select>
         </label>
         <label>Results
           <select id="limit"><option>10</option><option selected>25</option><option>50</option><option>100</option><option>250</option><option>500</option></select>
@@ -88,7 +88,7 @@
       <div class="collections" aria-label="Collections">
         <span class="subtle">Collections:</span>
         <label><input type="checkbox" name="collection" value="chunks" checked /> Slack chunks</label>
-        <label><input type="checkbox" name="collection" value="wiki" checked /> Wiki</label>
+        <label><input type="checkbox" name="collection" value="wiki" /> Wiki</label>
         <label><input type="checkbox" name="collection" value="raw" /> Raw Slack</label>
       </div>
       <div class="filters">
@@ -140,7 +140,7 @@ function escapeHtml(value) {
 function escapeRegex(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function selectedCollections() {
   const values = [...document.querySelectorAll('input[name="collection"]:checked')].map((input) => input.value);
-  return values.length ? values.join(',') : 'all';
+  return values.length ? values.join(',') : 'chunks';
 }
 function normalizeFacet(value) { return String(value || '').trim().replace(/^#/, '').toLowerCase(); }
 function quoteDecoratorValue(value) { return /\s/.test(String(value)) ? `"${String(value).replaceAll('"', '\\"')}"` : String(value); }
@@ -294,7 +294,8 @@ async function search() {
     lastResults = data.results || [];
     resultsEl.innerHTML = lastResults.map(resultHtml).join('') || '<p class="subtle">No results. Try fewer filters or a broader query.</p>';
     const elapsed = data.elapsedMs === undefined ? '' : ` in ${(Number(data.elapsedMs) / 1000).toFixed(2)}s`;
-    const message = `${data.returned || 0} results; ${data.matched || 0} matched from ${data.fetched || 0} fetched${elapsed}. Backend: ${data.backend || 'qmd'}.`;
+    const cached = data.cacheHit ? ' from cache' : '';
+    const message = `${data.returned || 0} results${cached}; ${data.matched || 0} matched from ${data.fetched || 0} fetched${elapsed}. Backend: ${data.backend || 'qmd'}.`;
     setStatus(data.warning ? `${message} ${data.warning}` : message, data.warning ? 'warn' : '');
   } catch (error) {
     lastResults = [];

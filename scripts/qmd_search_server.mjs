@@ -13,6 +13,10 @@ const ROOT = process.env.LLM_WIKI_ROOT || process.cwd();
 const MAX_QUERY_CHARS = Number(process.env.LLM_WIKI_SEARCH_MAX_QUERY_CHARS || 1000);
 const MAX_RESULTS = Number(process.env.LLM_WIKI_SEARCH_MAX_RESULTS || 500);
 const FACET_CACHE_MS = Number(process.env.LLM_WIKI_FACET_CACHE_MS || 300000);
+const SEARCH_CACHE_MS = Number(process.env.LLM_WIKI_SEARCH_CACHE_MS || 300000);
+const SEARCH_CACHE_MAX = Number(process.env.LLM_WIKI_SEARCH_CACHE_MAX || 100);
+const DEFAULT_COLLECTION = process.env.LLM_WIKI_SEARCH_DEFAULT_COLLECTION || 'chunks';
+const HYBRID_CANDIDATE_LIMIT = Number(process.env.LLM_WIKI_HYBRID_CANDIDATE_LIMIT || 10);
 const SLACK_RUN_ID = process.env.SLACK_RUN_ID || process.env.LLM_WIKI_SLACK_RUN_ID || detectSlackRunId();
 
 const COLLECTIONS = {
@@ -32,6 +36,8 @@ const LOCAL_ROOTS = {
 const DECORATOR_COLLECTIONS = {raw: 'raw', slack: 'raw', chunks: 'chunks', wiki: 'wiki', all: 'all'};
 
 let facetCache = {expires: 0, data: null};
+const searchCache = new Map();
+const inFlightSearches = new Map();
 
 function detectSlackRunId() {
   try {
@@ -102,10 +108,10 @@ function effectiveParams(params) {
   return {effective, decorators, cleanQuery};
 }
 function requestedCollections(value) {
-  const requested = String(value || 'all').split(',').map((item) => item.trim()).filter(Boolean);
+  const requested = String(value || DEFAULT_COLLECTION).split(',').map((item) => item.trim()).filter(Boolean);
   const qmdCollections = [];
   const localRoots = [];
-  for (const item of requested.length ? requested : ['all']) {
+  for (const item of requested.length ? requested : [DEFAULT_COLLECTION]) {
     if (!COLLECTIONS[item]) throw new Error(`unknown collection: ${item}`);
     qmdCollections.push(...COLLECTIONS[item]);
     localRoots.push(...LOCAL_ROOTS[item]);
@@ -131,16 +137,18 @@ function buildSearch(params) {
   const {effective, decorators, cleanQuery} = effectiveParams(params);
   let query = cleanQuery || stripQuotes(effective.get('user') || '') || normalizeChannel(effective.get('channel') || '') || 'wiki';
   if (query.length > MAX_QUERY_CHARS) throw new Error(`query too long; max ${MAX_QUERY_CHARS} chars`);
-  const mode = String(effective.get('mode') || 'lex').toLowerCase();
+  const mode = String(effective.get('mode') || 'vec').toLowerCase();
   const limit = Math.min(Math.max(Number(effective.get('n') || 25), 1), MAX_RESULTS);
   const collectionInfo = requestedCollections(effective.get('collection'));
   const user = stripQuotes(effective.get('user') || '');
   if (mode === 'lex' && user && !query.toLowerCase().includes(user.toLowerCase())) query = `${query} "${user}"`;
 
   let args;
+  const typedQuery = /^(lex|vec|hyde|intent|expand):/m.test(query);
   if (mode === 'lex') args = ['search', query];
-  else if (mode === 'vec') args = ['vsearch', query];
-  else if (mode === 'hybrid') args = ['query', /^(lex|vec|hyde|intent|expand):/m.test(query) ? query : `expand: ${query}`, '--no-rerank'];
+  else if (mode === 'vec') args = ['query', typedQuery ? query : `vec: ${query}`, '--no-rerank', '-C', String(HYBRID_CANDIDATE_LIMIT)];
+  else if (mode === 'hybrid') args = ['query', typedQuery ? query : `lex: ${query}
+vec: ${query}`, '--no-rerank', '-C', String(HYBRID_CANDIDATE_LIMIT)];
   else throw new Error(`unknown mode: ${mode}`);
   args.push('-n', String(limit), '--json', '--line-numbers');
   for (const collection of collectionInfo.qmdCollections) args.push('-c', collection);
@@ -295,12 +303,55 @@ async function qmdSearchOrFallback(built, startedAt) {
     return localMarkdownSearch(built, startedAt, 'QMD lexical search returned unusable output; searched local markdown files instead.');
   }
 }
+function cloneJson(value) { return JSON.parse(JSON.stringify(value)); }
+function cacheKeyForSearch(built) {
+  return JSON.stringify({
+    args: built.args,
+    effective: [...built.effective.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    qmdCollections: built.qmdCollections,
+    localRoots: built.localRoots,
+    limit: built.limit,
+    mode: built.mode,
+  });
+}
+function getCachedSearch(key) {
+  if (!SEARCH_CACHE_MS) return null;
+  const entry = searchCache.get(key);
+  if (!entry) return null;
+  if (entry.expires <= Date.now()) { searchCache.delete(key); return null; }
+  searchCache.delete(key);
+  searchCache.set(key, entry);
+  return cloneJson(entry.data);
+}
+function setCachedSearch(key, data) {
+  if (!SEARCH_CACHE_MS) return;
+  searchCache.set(key, {expires: Date.now() + SEARCH_CACHE_MS, data: cloneJson(data)});
+  while (searchCache.size > SEARCH_CACHE_MAX) searchCache.delete(searchCache.keys().next().value);
+}
+async function cachedSearch(built) {
+  const key = cacheKeyForSearch(built);
+  const cached = getCachedSearch(key);
+  if (cached) return {...cached, cacheHit: true};
+  if (inFlightSearches.has(key)) return {...cloneJson(await inFlightSearches.get(key)), cacheHit: 'shared'};
+  const startedAt = Date.now();
+  const promise = qmdSearchOrFallback(built, startedAt);
+  inFlightSearches.set(key, promise);
+  try {
+    const data = await promise;
+    setCachedSearch(key, data);
+    return data;
+  } finally {
+    inFlightSearches.delete(key);
+  }
+}
 async function handleSearch(_req, res, url) {
   const startedAt = Date.now();
   let built;
   try { built = buildSearch(url.searchParams); }
   catch (error) { return json(res, 400, {error: safeError(error)}); }
-  return json(res, 200, await qmdSearchOrFallback(built, startedAt));
+  const data = await cachedSearch(built);
+  if (data.cacheHit) data.elapsedMs = Date.now() - startedAt;
+  return json(res, 200, data);
 }
 async function handleGet(_req, res, url) {
   const target = String(url.searchParams.get('target') || '').trim();
@@ -366,7 +417,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname === '/' || url.pathname === '/index.html') return text(res, 200, await readFile(htmlPath, 'utf8'), 'text/html; charset=utf-8');
     if (url.pathname === '/favicon.ico') { res.writeHead(204, {'cache-control': 'public, max-age=86400'}); return res.end(); }
-    if (url.pathname === '/health') return json(res, 200, {ok: true, service: 'qmd-search', qmd: QMD, root: ROOT, maxResults: MAX_RESULTS});
+    if (url.pathname === '/health') return json(res, 200, {ok: true, service: 'qmd-search', qmd: QMD, root: ROOT, maxResults: MAX_RESULTS, defaultCollection: DEFAULT_COLLECTION, searchCacheMs: SEARCH_CACHE_MS, searchCacheSize: searchCache.size, hybridCandidateLimit: HYBRID_CANDIDATE_LIMIT});
     if (url.pathname === '/api/facets') return json(res, 200, await buildFacets());
     if (url.pathname === '/api/search') return handleSearch(req, res, url);
     if (url.pathname === '/api/get') return handleGet(req, res, url);

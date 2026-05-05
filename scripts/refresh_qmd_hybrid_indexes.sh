@@ -2,6 +2,8 @@
 set -euo pipefail
 ROOT="${LLM_WIKI_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$ROOT"
+export QMD_LLAMA_GPU="${QMD_LLAMA_GPU:-false}"
+export QMD_EMBED_MODEL="${QMD_EMBED_MODEL:-hf:mixedbread-ai/mxbai-embed-large-v1/gguf/mxbai-embed-large-v1-f16.gguf}"
 default_slack_run_id() {
   python3 - <<'PY'
 import json, pathlib

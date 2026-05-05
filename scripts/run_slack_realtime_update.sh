@@ -41,8 +41,12 @@ PY
   if [[ -n "$RUN_ID" && "$PAGES_WRITTEN" != "0" ]]; then
     echo "$(date -Is) materializing ${RUN_ID} for QMD"
     python3 scripts/materialize_qmd_slack_chunks.py --run-id "$RUN_ID"
-    echo "$(date -Is) qmd update"
-    qmd update
+    if [[ "${LLM_WIKI_REALTIME_QMD_UPDATE:-false}" == "true" ]]; then
+      echo "$(date -Is) qmd update"
+      qmd update
+    else
+      echo "$(date -Is) skipping qmd update during realtime ingest; run scripts/update_qmd_indexes.sh off-hours or set LLM_WIKI_REALTIME_QMD_UPDATE=true"
+    fi
   else
     echo "$(date -Is) no new Slack pages; skipping materialize/qmd update"
   fi

@@ -4,11 +4,11 @@ ROOT="${LLM_WIKI_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 mkdir -p "$UNIT_DIR"
 
-# The shipped unit uses %h/slack-qmd-wiki by default. If this clone lives
-# somewhere else, write a local override with LLM_WIKI_ROOT and the actual
-# ExecStart path.
+# The shipped unit uses %h/Work/Workspaces/displayr-llm-wiki by default. If this
+# clone lives somewhere else, write a local override with LLM_WIKI_ROOT and the
+# actual ExecStart path.
 install -m 0644 "$ROOT/deploy/systemd/llm-wiki-slack-realtime.timer" "$UNIT_DIR/llm-wiki-slack-realtime.timer"
-if [[ "$ROOT" == "$HOME/slack-qmd-wiki" ]]; then
+if [[ "$ROOT" == "$HOME/Work/Workspaces/displayr-llm-wiki" ]]; then
   install -m 0644 "$ROOT/deploy/systemd/llm-wiki-slack-realtime.service" "$UNIT_DIR/llm-wiki-slack-realtime.service"
 else
   cat > "$UNIT_DIR/llm-wiki-slack-realtime.service" <<UNIT

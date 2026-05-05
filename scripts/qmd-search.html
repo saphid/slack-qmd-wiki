@@ -5,119 +5,729 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QMD Search</title>
   <style>
-    :root { color-scheme: dark; --bg:#07101a; --panel:#101b2b; --panel2:#0b1420; --text:#eef4ff; --muted:#9aa7bb; --border:#263247; --accent:#7484ff; --bad:#ff7878; --warn:#facc15; --ok:#22c55e; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    :root {
+      color-scheme: dark;
+      --bg: #07111b;
+      --bg2: #0b1524;
+      --panel: rgba(13, 21, 34, 0.9);
+      --panel2: rgba(8, 14, 24, 0.9);
+      --panel3: rgba(17, 27, 43, 0.92);
+      --text: #edf3ff;
+      --muted: #98a6bc;
+      --border: rgba(155, 176, 214, 0.15);
+      --border-strong: rgba(155, 176, 214, 0.24);
+      --accent: #8090ff;
+      --accent-strong: #6b7cff;
+      --accent-soft: rgba(128, 144, 255, 0.15);
+      --good: #41d67c;
+      --warn: #f5c542;
+      --bad: #ff8a8a;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+      --radius: 18px;
+      --radius-sm: 12px;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; color: var(--text); background: radial-gradient(circle at 20% 0, rgba(116,132,255,.18), transparent 28rem), linear-gradient(135deg,#060b13,#0b1320); line-height: 1.45; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(36, 56, 97, 0.28), transparent 26rem),
+        radial-gradient(circle at 88% 12%, rgba(32, 55, 95, 0.12), transparent 20rem),
+        linear-gradient(135deg, #050a12, #0b1422 55%, #060b13);
+      line-height: 1.45;
+    }
     button, input, select { font: inherit; }
-    button { cursor: pointer; border: 1px solid var(--border); background: #182235; color: var(--text); border-radius: .55rem; padding: .58rem .75rem; }
-    button.primary { border: 0; background: linear-gradient(135deg,#6978ff,#4f5fe8); font-weight: 800; }
-    button:disabled { opacity: .55; cursor: not-allowed; }
-    input, select { width: 100%; border: 1px solid var(--border); border-radius: .55rem; background: #07111d; color: var(--text); padding: .6rem .7rem; }
-    label { display: grid; gap: .35rem; color: #c4cedd; font-size: .9rem; }
-    .app { width: min(1180px, calc(100vw - 2rem)); margin: 0 auto; padding: 1.3rem 0 2rem; }
-    header { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
-    h1 { margin: 0; font-size: 1.4rem; letter-spacing: -.02em; }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(29, 40, 61, 0.95), rgba(18, 27, 43, 0.95));
+      color: var(--text);
+      border-radius: 12px;
+      padding: 0.62rem 0.9rem;
+      transition: border-color 0.12s ease, transform 0.12s ease, background 0.12s ease;
+    }
+    button:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    button.primary {
+      border: 0;
+      background: linear-gradient(135deg, #5966eb, #4e5bd8 55%, #4450c5);
+      color: #f4f7ff;
+      font-weight: 800;
+      box-shadow: none;
+    }
+    button.ghost { background: rgba(13, 20, 33, 0.8); }
+    input, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(5, 10, 18, 0.72);
+      color: var(--text);
+      padding: 0.68rem 0.78rem;
+      outline: none;
+    }
+    input:focus, select:focus, button:focus-visible { border-color: rgba(128, 144, 255, 0.72); box-shadow: 0 0 0 3px rgba(128, 144, 255, 0.15); }
+    label { display: grid; gap: 0.36rem; color: #c4cedf; font-size: 0.9rem; }
+    .shell { width: min(1560px, calc(100vw - 1.2rem)); margin: 0 auto; padding: 1rem 0 1.5rem; display: grid; gap: 1rem; }
+    .panel {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+    .topbar { padding: 1rem; position: sticky; top: 0.75rem; z-index: 30; }
+    .topbar-head {
+      display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 0.9rem;
+    }
+    .brand { display: grid; gap: 0.22rem; }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.72rem;
+      color: #aab8d1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    h1, h2, h3 { margin: 0; }
+    h1 { font-size: 1.45rem; letter-spacing: -0.03em; }
     .subtle { color: var(--muted); }
-    .panel { border: 1px solid var(--border); background: rgba(16,27,43,.88); border-radius: .9rem; box-shadow: 0 22px 70px rgba(0,0,0,.28); }
-    .search-panel { padding: .9rem; display: grid; gap: .75rem; }
-    .query-row { display: grid; grid-template-columns: 1fr auto auto; gap: .6rem; }
+    .tiny { font-size: 0.82rem; }
+    .query-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 0.6rem; align-items: start; }
     .query-box { position: relative; min-width: 0; }
-    .suggest-box { position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + .35rem); border: 1px solid var(--border); border-radius: .7rem; background: #0b1420; box-shadow: 0 18px 50px rgba(0,0,0,.4); overflow: hidden; }
+    .query-box input { padding: 0.82rem 0.9rem; font-size: 1rem; }
+    .suggest-box {
+      position: absolute;
+      z-index: 40;
+      left: 0;
+      right: 0;
+      top: calc(100% + 0.4rem);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      background: #0a1321;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.48);
+      overflow: hidden;
+    }
     .suggest-box[hidden] { display: none; }
-    .suggest-box button { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; border: 0; border-radius: 0; background: transparent; text-align: left; padding: .55rem .7rem; }
-    .suggest-box button:hover, .suggest-box button.active { background: rgba(116,132,255,.18); }
-    .suggest-sub { color: var(--muted); font-size: .82rem; padding-left: .65rem; }
-    .suggest-empty { padding: .65rem .75rem; color: var(--muted); }
-    .controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
-    .collections { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; }
-    .collections label { display: inline-flex; width: auto; grid-auto-flow: column; align-items: center; gap: .35rem; }
-    .collections input { width: auto; }
-    .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .65rem; }
-    .status { margin: .9rem 0; padding: .75rem .9rem; border: 1px solid var(--border); border-radius: .7rem; background: rgba(7,17,29,.8); }
-    .status.warn { border-color: rgba(250,204,21,.5); color: var(--warn); }
-    .status.bad { border-color: rgba(255,120,120,.55); color: var(--bad); }
-    .results { display: grid; gap: .75rem; }
-    .result { padding: .9rem; }
-    .result h2 { margin: .5rem 0 .25rem; font-size: 1.05rem; }
-    .badges { display: flex; flex-wrap: wrap; gap: .35rem; }
-    .badge { border: 1px solid var(--border); background: #0b1420; border-radius: 999px; padding: .18rem .5rem; color: #d8e2f2; font-size: .78rem; }
-    .path { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; overflow-wrap: anywhere; }
-    pre { margin: .7rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--border); border-radius: .65rem; background: #050b13; padding: .75rem; max-height: 22rem; overflow: auto; }
-    mark { background: #fde047; color: #1f1a00; border-radius: .15rem; padding: 0 .07rem; }
-    .actions { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .75rem; }
-    dialog { width: min(980px, 94vw); max-height: 86vh; color: var(--text); background: #0b1420; border: 1px solid var(--border); border-radius: .8rem; }
-    dialog::backdrop { background: rgba(0,0,0,.55); }
-    .dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-    @media (max-width: 860px) { header, .query-row, .controls, .filters { grid-template-columns: 1fr; display: grid; } .controls, .filters { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 560px) { .controls, .filters { grid-template-columns: 1fr; } }
+    .suggest-box button {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      width: 100%;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      text-align: left;
+      padding: 0.58rem 0.8rem;
+      transform: none;
+    }
+    .suggest-box button:hover, .suggest-box button.active { background: rgba(128, 144, 255, 0.16); }
+    .suggest-sub { color: var(--muted); font-size: 0.8rem; padding-left: 0.7rem; }
+    .suggest-empty { padding: 0.7rem 0.8rem; color: var(--muted); }
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+      align-items: end;
+    }
+    .toolbar label select { min-width: 0; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(10, 18, 31, 0.9);
+      color: #dce5f6;
+      padding: 0.42rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      transform: none;
+    }
+    .chip:hover { border-color: rgba(128, 144, 255, 0.5); }
+    .chip .chip-x { color: var(--muted); }
+    .chip.clear-all { border-style: dashed; color: #f0f5ff; }
+    .status {
+      margin: 0;
+      padding: 0.82rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: rgba(8, 14, 24, 0.8);
+      color: #d8e2f3;
+    }
+    .status.warn { border-color: rgba(245, 197, 66, 0.42); color: #f9dd88; }
+    .status.bad { border-color: rgba(255, 138, 138, 0.42); color: #ffb0b0; }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(17rem, 18rem) minmax(0, 1.35fr) minmax(21rem, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+    .sidebar, .results-pane, .preview { padding: 1rem; }
+    .sidebar, .preview { position: sticky; top: 10.25rem; }
+    .pane-head { display: grid; gap: 0.25rem; margin-bottom: 0.9rem; }
+    .pane-head h2 { font-size: 1.04rem; letter-spacing: -0.02em; }
+    .sidebar-section { display: grid; gap: 0.75rem; margin-top: 0.95rem; }
+    .source-list { display: grid; gap: 0.55rem; }
+    .source-list label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.58rem 0.7rem;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 14px;
+      background: rgba(6, 11, 19, 0.55);
+    }
+    .source-list input { width: auto; }
+    .filter-grid { display: grid; gap: 0.7rem; }
+    .sidebar-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .results-pane { display: grid; gap: 0.9rem; }
+    .results-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+    .results-summary { color: var(--muted); font-size: 0.9rem; }
+    .results { display: grid; gap: 0.8rem; }
+    .result {
+      padding: 0.95rem;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: linear-gradient(180deg, rgba(17, 27, 44, 0.96), rgba(8, 14, 24, 0.95));
+      border-radius: 18px;
+      cursor: pointer;
+      display: grid;
+      gap: 0.7rem;
+    }
+    .result:hover { border-color: rgba(128, 144, 255, 0.34); transform: translateY(-1px); }
+    .result.selected {
+      border-color: rgba(128, 144, 255, 0.78);
+      background: linear-gradient(180deg, rgba(24, 36, 63, 1), rgba(11, 18, 31, 0.95));
+      box-shadow: 0 0 0 1px rgba(128, 144, 255, 0.16), 0 18px 40px rgba(25, 34, 68, 0.24);
+    }
+    .result-top { display: flex; justify-content: space-between; gap: 0.8rem; align-items: start; }
+    .result h3 { font-size: 1.02rem; letter-spacing: -0.02em; }
+    .result .meta { display: grid; gap: 0.18rem; }
+    .path {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      overflow-wrap: anywhere;
+    }
+    .badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .badge {
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: rgba(7, 13, 22, 0.82);
+      border-radius: 999px;
+      padding: 0.19rem 0.55rem;
+      font-size: 0.78rem;
+      color: #d8e2f2;
+    }
+    .badge.corpus-raw { border-color: rgba(255, 138, 138, 0.25); background: rgba(60, 18, 25, 0.55); color: #ffd5d5; }
+    .badge.corpus-chunks { border-color: rgba(128, 144, 255, 0.28); background: rgba(17, 28, 54, 0.7); color: #dce4ff; }
+    .badge.corpus-wiki { border-color: rgba(65, 214, 124, 0.24); background: rgba(12, 41, 29, 0.56); color: #ccffe0; }
+    .badge.corpus-docs { border-color: rgba(245, 197, 66, 0.24); background: rgba(43, 34, 11, 0.62); color: #ffe8b0; }
+    .badge.corpus-transcripts { border-color: rgba(192, 132, 252, 0.34); background: rgba(48, 24, 76, 0.68); color: #ead7ff; }
+    .result.source-transcripts { border-color: rgba(192, 132, 252, 0.28); background: linear-gradient(180deg, rgba(31, 24, 50, 0.98), rgba(10, 14, 28, 0.96)); }
+    .result.source-transcripts .excerpt { border-color: rgba(192, 132, 252, 0.28); background: rgba(22, 14, 38, .42); }
+    .badge.score { border-color: rgba(128, 144, 255, 0.24); color: #d9e2ff; }
+    .badge.match { border-color: rgba(65, 214, 124, 0.22); color: #c8ffd8; }
+    .source-mark { display: inline-flex; align-items: center; gap: .34rem; min-width: 0; }
+    .source-icon { width: 1em; height: 1em; flex: 0 0 auto; vertical-align: -0.14em; }
+    .source-icon.slack { transform: translateY(0.01em); }
+    .result-title, .section-title { display: inline-flex; align-items: center; gap: .42rem; min-width: 0; }
+    .result-title span:last-child { min-width: 0; }
+    .external-links { display: flex; flex-wrap: wrap; gap: .36rem; align-items: center; }
+    .external-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .32rem;
+      width: fit-content;
+      border: 1px solid rgba(54,197,240,.22);
+      background: rgba(7,18,28,.72);
+      color: #dff7ff;
+      border-radius: 999px;
+      padding: .22rem .5rem;
+      font-size: .74rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .external-link:hover { border-color: rgba(54,197,240,.45); background: rgba(12,28,43,.86); }
+    .preview-hero .external-links { margin-top: .18rem; }
+    .entity-ref { display: inline-flex; align-items: center; gap: .18rem; vertical-align: baseline; }
+    .entity-chip {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      min-height: 0;
+      border-radius: 999px;
+      padding: .06rem .36rem;
+      font-size: .86em;
+      font-weight: 800;
+      transform: none;
+      vertical-align: baseline;
+    }
+    .entity-chip-user { border-color: rgba(128,144,255,.34); background: rgba(35,42,92,.62); color: #eef2ff; }
+    .entity-chip-channel { border-color: rgba(54,197,240,.34); background: rgba(7,32,48,.66); color: #e0f7ff; }
+    .entity-chip:hover { transform: none; border-color: rgba(255,255,255,.42); }
+    .entity-link { color: #9be8ff; font-size: .82em; text-decoration: none; }
+    .entity-link:hover { color: #dff7ff; text-decoration: underline; }
+    .slack-time-link { color: var(--muted); text-decoration: none; }
+    .slack-time-link:hover { color: #dff7ff; text-decoration: underline; }
+    .text-link { color: #a9dfff; text-decoration: underline; text-decoration-color: rgba(169, 223, 255, .55); text-underline-offset: .12em; }
+    .text-link:hover { color: #dff7ff; text-decoration-color: rgba(223, 247, 255, .9); }
+    .excerpt {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #d9e4f8;
+      line-height: 1.5;
+      border: 1px solid rgba(96, 165, 250, 0.14);
+      background: rgba(5, 12, 22, 0.36);
+      border-radius: 10px;
+      padding: 0.58rem 0.68rem;
+    }
+    .excerpt mark, .preview-source mark {
+      background: rgba(245, 197, 66, 0.95);
+      color: #201800;
+      border-radius: 0.18rem;
+      padding: 0 0.08rem;
+    }
+    .result-actions, .preview-actions, .link-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .result-actions { margin-top: 0.2rem; }
+    .preview { display: grid; gap: 1rem; }
+    .preview-empty {
+      border: 1px dashed rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      padding: 1rem;
+      color: var(--muted);
+      background: rgba(7, 12, 21, 0.45);
+    }
+    .preview-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+    .preview-title { display: grid; gap: 0.28rem; }
+    .preview-title h2 { font-size: 1.08rem; letter-spacing: -0.03em; }
+    .preview-sub { color: var(--muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+    .preview-section {
+      display: grid;
+      gap: 0.65rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .preview-section h3 { font-size: 0.92rem; color: #dce6f8; letter-spacing: 0.01em; }
+    .why { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+    .why li { display: flex; gap: 0.5rem; color: #d9e3f7; }
+    .why li::before { content: '•'; color: #8396ff; }
+    .preview-snippet {
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 16px;
+      background: rgba(6, 10, 18, 0.72);
+      padding: 0.8rem;
+    }
+    .preview-snippet .label { color: var(--muted); font-size: 0.8rem; margin-bottom: 0.5rem; }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 16px;
+      background: rgba(5, 10, 16, 0.9);
+      padding: 0.85rem;
+      max-height: 25rem;
+      overflow: auto;
+      color: #e8f0ff;
+    }
+    .transcript-card {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      padding: 0.78rem;
+      border: 1px solid rgba(192, 132, 252, 0.2);
+      border-radius: 16px;
+      background: rgba(44, 28, 70, 0.38);
+    }
+    .transcript-card div { min-width: 0; }
+    .transcript-card .label, .transcript-line .time { color: var(--muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .transcript-lines { display: grid; gap: 0.55rem; max-height: 34rem; overflow: auto; padding-right: 0.2rem; }
+    .transcript-line {
+      display: grid;
+      grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+      gap: 0.75rem;
+      padding: 0.68rem 0.75rem;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 14px;
+      background: rgba(5, 10, 18, 0.48);
+    }
+    .transcript-line .speaker { font-weight: 800; color: #ead7ff; }
+    .transcript-line .utterance { color: #e7eefc; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .transcript-fallback { margin-top: 0.7rem; }
+    .preview-source { min-height: 18rem; }
+    dialog {
+      width: min(1040px, 94vw);
+      max-height: 86vh;
+      color: var(--text);
+      background: #0b1420;
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.8rem; }
+
+    /* Dense, app-like polish inspired by the reference layout. */
+    body { font-size: 14px; }
+    .nav-rail {
+      position: fixed;
+      inset: 0 auto 0 0;
+      width: 80px;
+      z-index: 60;
+      display: grid;
+      grid-template-rows: 62px repeat(6, 64px) 1fr;
+      gap: 2px;
+      border-right: 1px solid rgba(148, 163, 184, 0.12);
+      background: linear-gradient(180deg, rgba(10, 18, 31, 0.96), rgba(5, 10, 18, 0.96));
+      box-shadow: 18px 0 60px rgba(0,0,0,.25);
+    }
+    .nav-logo { display: grid; place-items: center; color: #8d99ff; font-size: 1.35rem; }
+    .nav-item { color: #aebad0; text-decoration: none; display: grid; place-items: center; align-content: center; gap: 0.22rem; font-size: 1.2rem; border-radius: 14px; margin: 0.2rem 0.55rem; }
+    .nav-item small { font-size: 0.72rem; }
+    .nav-item.active { color: #eef4ff; background: rgba(57, 68, 138, 0.42); box-shadow: inset 0 0 0 1px rgba(141, 153, 255, 0.34), 0 8px 22px rgba(30, 39, 92, 0.24); }
+    .nav-bottom { align-self: end; margin-bottom: 0.75rem; }
+    .shell { width: calc(100vw - 96px); margin-left: 88px; padding: 0.8rem 0.75rem 4.2rem; gap: 0.72rem; }
+    .panel { border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.24); }
+    .topbar { padding: 0.72rem 0.82rem 0.66rem; top: 0.45rem; }
+    .topbar-head { margin-bottom: 0.55rem; align-items: center; }
+    .brand { min-width: 13rem; }
+    .beta-pill { margin-left: .35rem; padding: .08rem .32rem; border-radius: 999px; background: rgba(82,94,213,.34); color: #e4e8ff; font-size: .62rem; letter-spacing: .06em; }
+    h1 { font-size: 1.12rem; line-height: 1.15; }
+    h2 { font-size: 1.05rem; }
+    .eyebrow { font-size: 0.68rem; letter-spacing: .16em; }
+    .tiny, .subtle { font-size: .82rem; }
+    .query-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .56rem; align-items: center; padding-bottom: .72rem; border-bottom: 1px solid rgba(148,163,184,.12); }
+    .query-box { display: flex; align-items: center; gap: .62rem; min-height: 48px; border: 0; background: transparent; }
+    .query-icon { width: 1.35rem; height: 1.35rem; color: #9aa8c0; flex: 0 0 auto; }
+    .query-box input { min-height: 46px; padding: 0; border: 0; background: transparent; font-size: .98rem; font-weight: 750; box-shadow: none; }
+    .query-box input:focus { box-shadow: none; }
+    button { min-height: 34px; padding: .42rem .62rem; border-radius: 9px; font-size: .84rem; }
+    button.primary { min-width: 112px; display: inline-flex; align-items: center; justify-content: center; gap: .42rem; }
+    .search-card-controls { display: grid; grid-template-columns: minmax(11rem, 1.1fr) minmax(10rem, .95fr) minmax(10rem, .95fr) minmax(10rem, .95fr) minmax(10rem, .95fr) auto; gap: .56rem; align-items: end; padding-top: .72rem; }
+    .control-select, .control-menu { min-width: 0; }
+    .control-select { display: grid; gap: .22rem; color: #8f9db6; font-size: .72rem; font-weight: 760; }
+    .control-select span, .control-menu-label { color: #8f9db6; font-size: .72rem; font-weight: 760; }
+    .control-select select, .control-menu-trigger, .more-filters-button {
+      min-height: 38px;
+      border: 1px solid rgba(148,163,184,.14);
+      border-radius: 10px;
+      background: rgba(6,12,22,.58);
+      color: #edf3ff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.015);
+    }
+    .control-select select { padding: .46rem .72rem; font-weight: 750; }
+    .control-menu { position: relative; display: grid; gap: .22rem; }
+    .control-menu-trigger { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .7rem; cursor: pointer; padding: .46rem .72rem; text-align: left; transform: none; }
+    .control-menu-value { font-weight: 800; color: #edf3ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chevron { color: #9aa8c0; }
+    .control-menu-popover { position: absolute; z-index: 55; top: calc(100% + .38rem); left: 0; min-width: 15rem; border: 1px solid var(--border-strong); border-radius: 12px; background: #091321; box-shadow: 0 20px 55px rgba(0,0,0,.42); padding: .42rem; display: grid; gap: .24rem; }
+    .control-menu-popover[hidden] { display: none; }
+    .control-menu-popover label { display: flex; align-items: center; gap: .48rem; padding: .46rem .52rem; border-radius: 9px; color: #dce6f8; }
+    .control-menu-popover label:hover { background: rgba(128,144,255,.12); }
+    .control-menu-popover input { width: auto; min-height: 0; }
+    .more-filters-button { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-width: 10.8rem; padding: .46rem .72rem; color: #b9c2ff; font-weight: 800; transform: none; }
+    .filter-icon { color: #8090ff; font-size: 1.05rem; line-height: 1; }
+    .count-pill { display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem; padding: 0 .35rem; border-radius: 999px; background: rgba(128,144,255,.34); color: #eef2ff; font-size: .72rem; }
+    .count-pill.is-empty { display: none; }
+    .more-filters-panel { margin-top: .58rem; border: 1px solid rgba(148,163,184,.12); border-radius: 12px; background: rgba(6,12,22,.42); padding: .62rem; }
+    .more-filters-panel[hidden] { display: none; }
+    .filter-grid.compact { grid-template-columns: repeat(5, minmax(8.5rem, 1fr)); gap: .5rem; }
+    .filter-grid.compact label { min-width: 0; }
+    input, select { min-height: 34px; padding: .46rem .58rem; border-radius: 9px; font-size: .84rem; }
+    label { font-size: .77rem; gap: .22rem; }
+    .chips { margin-top: .58rem; padding-top: .58rem; gap: .42rem; }
+    .chip { padding: .34rem .58rem; font-size: .8rem; border-radius: 9px; }
+    .chip.clear-all { border: 0; background: transparent; color: #9da8ff; padding-inline: .3rem; }
+    .status { padding: .54rem .75rem; min-height: 36px; font-size: .88rem; }
+    .workspace { grid-template-columns: minmax(620px, 1fr) 410px; gap: .52rem; }
+    .sidebar, .results-pane, .preview { padding: .72rem; }
+    .sidebar, .preview { top: 8.7rem; max-height: calc(100vh - 9.4rem); overflow: auto; }
+    .pane-head { margin-bottom: .62rem; gap: .16rem; }
+    .sidebar-section { gap: .48rem; margin-top: .65rem; }
+    .source-list { gap: .36rem; }
+    .source-list label { padding: .44rem .55rem; border-radius: 10px; }
+    .filter-grid { gap: .46rem; }
+    .results-pane { gap: .55rem; }
+    .results-head { align-items: center; padding-bottom: .42rem; border-bottom: 1px solid rgba(148,163,184,.1); }
+    .results-summary { font-size: .82rem; }
+    .result-tabs { display: flex; gap: .38rem; flex-wrap: wrap; align-items: center; padding: .08rem 0 .1rem; }
+    .result-tab { border: 1px solid rgba(148,163,184,.14); border-radius: 999px; padding: .28rem .55rem; background: rgba(6,11,19,.55); color: #cbd5e1; font-size: .78rem; }
+    .result-tab.total { color: #eef4ff; font-weight: 800; }
+    button.result-tab { min-height: 0; transform: none; }
+    button.result-tab:hover { border-color: rgba(128,144,255,.5); }
+    .result-tab strong { color: #eef4ff; margin-left: .3rem; }
+    .results { gap: .48rem; }
+    .result { padding: .62rem .72rem; border-radius: 12px; gap: .45rem; }
+    .result-top { gap: .6rem; }
+    .result h3 { font-size: .92rem; margin-bottom: .12rem; }
+    .path { font-size: .72rem; opacity: .78; }
+    .badges { gap: .28rem; }
+    .badge { padding: .12rem .4rem; font-size: .69rem; }
+    .excerpt { font-size: .82rem; line-height: 1.38; max-height: 5.7rem; overflow: hidden; padding-left: .62rem; }
+    .result-actions { gap: .32rem; opacity: .86; }
+    .result-actions button, .preview-actions button { min-height: 28px; padding: .32rem .48rem; font-size: .74rem; }
+    .preview { gap: .62rem; }
+    .preview-head { gap: .55rem; padding-bottom: .45rem; border-bottom: 1px solid rgba(148,163,184,.1); }
+    .preview-title h2 { font-size: 1rem; }
+    .preview-sub { font-size: .72rem; }
+    .preview-section { margin-top: .58rem; padding-top: .58rem; }
+    .why { font-size: .8rem; }
+    .transcript-card { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .42rem; padding: .55rem; }
+    .transcript-card strong { font-size: .82rem; }
+    .transcript-lines { gap: .34rem; max-height: 29rem; }
+    .transcript-line { grid-template-columns: 7.2rem minmax(0, 1fr); gap: .48rem; padding: .46rem .52rem; border-radius: 10px; }
+    .transcript-line .speaker { font-size: .78rem; }
+    .transcript-line .time { font-size: .68rem; }
+    .transcript-line .utterance { font-size: .78rem; line-height: 1.35; }
+    .chat-lines { display: grid; gap: .32rem; max-height: none; }
+    .chat-message {
+      display: grid;
+      grid-template-columns: 2rem minmax(0, 1fr);
+      gap: .58rem;
+      padding: .54rem .62rem;
+      border: 1px solid rgba(148,163,184,.1);
+      border-radius: 12px;
+      background: rgba(5, 10, 18, .38);
+    }
+    .chat-avatar {
+      width: 2rem;
+      height: 2rem;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: linear-gradient(135deg, rgba(88,101,242,.92), rgba(66,81,190,.92));
+      color: #f6f8ff;
+      font-size: .72rem;
+      font-weight: 850;
+      letter-spacing: .02em;
+    }
+    .chat-content { display: grid; gap: .18rem; min-width: 0; }
+    .chat-head { display: flex; align-items: baseline; gap: .38rem; min-width: 0; }
+    .chat-message .speaker { font-weight: 800; color: #f4f7ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-message .time { color: var(--muted); font-size: .68rem; white-space: nowrap; }
+    .chat-message .message { color: #f1f6ff; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.36; }
+    .result.source-chunks .excerpt { border-color: rgba(54,197,240,.18); background: rgba(6, 16, 26, .52); }
+
+    /* Content-first pass: keep relevance/debug plumbing available, but stop leading with it. */
+    .result h3 { font-size: .98rem; }
+    .result .path { display: none; }
+    .result-context { display: flex; flex-wrap: wrap; gap: .32rem; align-items: center; color: var(--muted); font-size: .74rem; }
+    .result-context .dot { opacity: .5; }
+    .result .excerpt { max-height: 7.8rem; font-size: .9rem; color: #f1f6ff; }
+    .result.source-transcripts .excerpt { color: #f4ecff; }
+    .result-more, .preview-more { margin-top: .1rem; }
+    .result-more summary, .preview-more summary {
+      cursor: pointer;
+      width: fit-content;
+      color: #aab7d0;
+      font-size: .76rem;
+      list-style: none;
+      border: 1px solid rgba(148,163,184,.14);
+      border-radius: 999px;
+      padding: .22rem .5rem;
+      background: rgba(5,10,18,.44);
+    }
+    .result-more summary::-webkit-details-marker, .preview-more summary::-webkit-details-marker { display: none; }
+    .result-more summary::after, .preview-more summary::after { content: ' ▾'; color: #7f8da7; }
+    .result-more[open] summary::after, .preview-more[open] summary::after { content: ' ▴'; }
+    .result-more[open] .result-actions { margin-top: .46rem; }
+    .result-tech { margin-top: .45rem; display: grid; gap: .35rem; color: var(--muted); font-size: .74rem; }
+    .result-tech .path { display: block; font-size: .7rem; }
+    .content-first { margin-top: .65rem; padding-top: 0; border-top: 0; }
+    .content-first h3 { margin-bottom: .5rem; }
+    .preview .preview-source, .preview .transcript-lines { max-height: none; }
+    .preview-hero { display: grid; gap: .38rem; }
+    .preview-hero h2 { font-size: 1.05rem; line-height: 1.25; }
+    .preview-hero .result-context { font-size: .78rem; }
+    .preview-more { border-top: 1px solid rgba(148,163,184,.1); padding-top: .58rem; }
+    .source-line {
+      display: inline-flex;
+      align-items: center;
+      gap: .38rem;
+      width: fit-content;
+      border: 1px solid rgba(148,163,184,.14);
+      background: rgba(7,13,22,.74);
+      border-radius: 999px;
+      padding: .24rem .52rem;
+      color: #dce6f8;
+      font-size: .74rem;
+      margin-bottom: .2rem;
+    }
+    .preview-source-strip {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      color: #d8e2f2;
+      border: 1px solid rgba(148,163,184,.12);
+      background: rgba(5,10,18,.38);
+      border-radius: 12px;
+      padding: .5rem .62rem;
+      margin-bottom: .62rem;
+    }
+    .preview-more[open] { display: grid; gap: .55rem; }
+    .tech-grid { display: grid; gap: .5rem; }
+    .tech-uri { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; color: #aab7d0; font-size: .72rem; }
+    .debug-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .why { margin: .4rem 0 0; }
+
+    @media (max-width: 1100px) {
+      .workspace { grid-template-columns: 1fr; }
+      .preview { grid-column: 1 / -1; position: static; }
+    }
+    @media (max-width: 980px) {
+      .nav-rail { display: none; }
+      .shell { width: min(100vw - 0.8rem, 100vw); margin-left: auto; }
+      .topbar { position: static; }
+      .workspace { grid-template-columns: 1fr; }
+      .sidebar, .preview { position: static; }
+      .query-row, .toolbar, .top-filters, .filter-grid.compact { grid-template-columns: 1fr; }
+      .results-head, .preview-head, .topbar-head { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
-  <main class="app">
-    <header>
-      <div>
-        <h1>QMD Search</h1>
-        <div class="subtle">Local search over Slack chunks, raw Slack markdown, and wiki pages.</div>
+  <aside class="nav-rail" aria-label="Primary navigation">
+    <div class="nav-logo" aria-hidden="true">◆</div>
+    <a class="nav-item active" href="#searchForm"><span>⌕</span><small>Search</small></a>
+  </aside>
+  <main class="shell">
+    <header class="panel topbar">
+      <div class="topbar-head">
+        <div class="brand">
+          <div class="eyebrow">QMD Search <span class="beta-pill">Beta</span></div>
+          <h1>Search workspace knowledge</h1>
+          <div class="subtle tiny">Slack, wiki, and meeting transcripts in one fast local index.</div>
+        </div>
+        <button id="healthButton" type="button" class="ghost">Check service</button>
       </div>
-      <button id="healthButton" type="button">Check service</button>
+
+      <form id="searchForm">
+        <div class="query-row">
+          <div class="query-box">
+            <svg class="query-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.8 18.1a7.3 7.3 0 1 1 0-14.6 7.3 7.3 0 0 1 0 14.6Zm0-2a5.3 5.3 0 1 0 0-10.6 5.3 5.3 0 0 0 0 10.6Zm5.4.1 4.3 4.3-1.4 1.4-4.3-4.3 1.4-1.4Z" fill="currentColor"/></svg>
+            <input id="query" type="search" placeholder="Search terms, or user:alex in:#general after:2026-01-01" autocomplete="off" autofocus required />
+            <div id="querySuggest" class="suggest-box" hidden></div>
+          </div>
+          <button id="clearButton" type="button" class="ghost">Clear</button>
+          <button class="primary" type="submit"><svg class="query-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.8 18.1a7.3 7.3 0 1 1 0-14.6 7.3 7.3 0 0 1 0 14.6Zm0-2a5.3 5.3 0 1 0 0-10.6 5.3 5.3 0 0 0 0 10.6Zm5.4.1 4.3 4.3-1.4 1.4-4.3-4.3 1.4-1.4Z" fill="currentColor"/></svg>Search</button>
+        </div>
+
+        <div class="search-card-controls" aria-label="Search options">
+          <div id="sourceMenu" class="control-menu source-menu">
+            <button id="sourceMenuButton" class="control-menu-trigger" type="button" aria-expanded="false" aria-controls="sourceMenuPopover"><span><span class="control-menu-label">Sources</span><br /><span id="sourceSummary" class="control-menu-value">2 selected</span></span><span class="chevron">⌄</span></button>
+            <div id="sourceMenuPopover" class="control-menu-popover" aria-label="Collections" hidden>
+              <label><input type="checkbox" name="collection" value="chunks" checked /> Slack messages</label>
+              <label><input type="checkbox" name="collection" value="wiki" checked /> Wiki</label>
+              <label><input type="checkbox" name="collection" value="conversations" /> Conversations</label>
+              <label><input type="checkbox" name="collection" value="transcripts" /> Transcripts</label>
+              <label><input type="checkbox" name="collection" value="raw" /> Raw Slack</label>
+            </div>
+          </div>
+          <label class="control-select"><span>Mode</span>
+            <select id="mode">
+              <option value="lex" selected>Lexical (fast, reliable)</option>
+              <option value="vec">Vector (semantic)</option>
+              <option value="hybrid">Hybrid (slower)</option>
+            </select>
+          </label>
+          <label class="control-select"><span>Results</span>
+            <select id="limit">
+              <option>10</option>
+              <option selected>25</option>
+              <option>50</option>
+              <option>100</option>
+              <option>250</option>
+              <option>500</option>
+            </select>
+          </label>
+          <label class="control-select"><span>Sort by</span>
+            <select id="sort">
+              <option value="relevance" selected>Relevance</option>
+              <option value="date-desc">Newest</option>
+              <option value="date-asc">Oldest</option>
+              <option value="channel">Channel/path</option>
+              <option value="corpus">Corpus</option>
+            </select>
+          </label>
+          <label class="control-select"><span>Time</span>
+            <select id="relativeTime">
+              <option value="">Any time</option>
+              <option value="last-week">Last week</option>
+              <option value="last-month">Last month</option>
+              <option value="last-year">Last year</option>
+            </select>
+          </label>
+          <button id="moreFiltersButton" class="more-filters-button" type="button" aria-expanded="false" aria-controls="moreFiltersPanel"><span class="filter-icon">▾</span><span>More filters</span><span id="moreFilterCount" class="count-pill is-empty">0</span></button>
+        </div>
+
+        <div id="moreFiltersPanel" class="more-filters-panel" hidden>
+          <div class="filter-grid compact">
+            <label>Channel
+              <input id="channel" type="text" list="channelOptions" placeholder="general" />
+            </label>
+            <label>User
+              <input id="user" type="text" list="userOptions" placeholder="Alex" />
+            </label>
+            <label>After
+              <input id="dateFrom" type="date" />
+            </label>
+            <label>Before
+              <input id="dateTo" type="date" />
+            </label>
+            <label>Within
+              <input id="within" type="text" placeholder="post-filter" />
+            </label>
+          </div>
+        </div>
+
+        <div id="activeFilters" class="chips" aria-label="Active filters"></div>
+        <datalist id="channelOptions"></datalist>
+        <datalist id="userOptions"></datalist>
+      </form>
     </header>
 
-    <form id="searchForm" class="panel search-panel">
-      <div class="query-row">
-        <div class="query-box">
-          <input id="query" type="search" placeholder="Search terms, or user:alex in:#general after:2026-01-01" autocomplete="off" autofocus required />
-          <div id="querySuggest" class="suggest-box" hidden></div>
-        </div>
-        <button id="clearButton" type="button">Clear</button>
-        <button class="primary" type="submit">Search</button>
-      </div>
-      <div class="controls">
-        <label>Mode
-          <select id="mode"><option value="lex">Lexical</option><option value="vec" selected>Vector (semantic, fast)</option><option value="hybrid">Hybrid (slower)</option></select>
-        </label>
-        <label>Results
-          <select id="limit"><option>10</option><option selected>25</option><option>50</option><option>100</option><option>250</option><option>500</option></select>
-        </label>
-        <label>Sort
-          <select id="sort"><option value="relevance" selected>Relevance</option><option value="date-desc">Newest</option><option value="date-asc">Oldest</option><option value="channel">Channel/path</option><option value="corpus">Corpus</option></select>
-        </label>
-        <label>Within results
-          <input id="within" type="text" placeholder="optional post-filter" />
-        </label>
-      </div>
-      <div class="collections" aria-label="Collections">
-        <span class="subtle">Collections:</span>
-        <label><input type="checkbox" name="collection" value="chunks" checked /> Slack chunks</label>
-        <label><input type="checkbox" name="collection" value="wiki" /> Wiki</label>
-        <label><input type="checkbox" name="collection" value="raw" /> Raw Slack</label>
-      </div>
-      <div class="filters">
-        <label>Channel
-          <input id="channel" type="text" list="channelOptions" placeholder="general" />
-        </label>
-        <label>User
-          <input id="user" type="text" list="userOptions" placeholder="Alex" />
-        </label>
-        <label>After
-          <input id="dateFrom" type="date" />
-        </label>
-        <label>Before
-          <input id="dateTo" type="date" />
-        </label>
-        <label>&nbsp;
-          <button id="clearFiltersButton" type="button">Clear filters</button>
-        </label>
-      </div>
-      <datalist id="channelOptions"></datalist>
-      <datalist id="userOptions"></datalist>
-    </form>
-
     <div id="status" class="status">Ready.</div>
-    <section id="results" class="results" aria-live="polite"></section>
+
+    <section class="workspace">
+      <section class="panel results-pane">
+        <div class="results-head">
+          <div>
+            <div class="eyebrow">Results</div>
+            <h2>Matches</h2>
+            <div id="resultsMeta" class="results-summary">Run a search to see ranked results.</div>
+          </div>
+          <div class="subtle tiny">Selecting a match opens its source preview.</div>
+        </div>
+        <div id="resultTabs" class="result-tabs" aria-label="Result source summary"></div>
+        <section id="results" class="results" aria-live="polite"></section>
+      </section>
+
+      <aside id="previewPanel" class="panel preview">
+        <div class="pane-head">
+          <div class="eyebrow">Preview</div>
+          <h2>Source preview</h2>
+          <div class="subtle tiny">The selected match, with verification details tucked away.</div>
+        </div>
+        <div id="previewBody" class="preview-empty">Choose a result to preview its source, metadata, and match context.</div>
+      </aside>
+    </section>
   </main>
 
   <dialog id="docDialog">
-    <div class="dialog-head"><h2 id="docTitle">Document</h2><button id="closeDialog" type="button">Close</button></div>
+    <div class="dialog-head">
+      <h2 id="docTitle">Document</h2>
+      <button id="closeDialog" type="button">Close</button>
+    </div>
     <div id="docBody"></div>
   </dialog>
 
@@ -126,33 +736,258 @@ const $ = (selector) => document.querySelector(selector);
 const form = $('#searchForm');
 const statusEl = $('#status');
 const resultsEl = $('#results');
+const resultsMetaEl = $('#resultsMeta');
+const resultTabsEl = $('#resultTabs');
+const boardCountsEl = $('#boardCounts');
+const previewBodyEl = $('#previewBody');
 const dialog = $('#docDialog');
 const docTitle = $('#docTitle');
 const docBody = $('#docBody');
+const DEFAULT_COLLECTIONS = ['chunks', 'wiki'];
+const SLACK_WORKSPACE_URL = 'https://displayr.slack.com';
 let lastResults = [];
+let lastSearchData = null;
 let highlightTerms = [];
 let facetState = {users: [], channels: []};
 let suggestState = {items: [], active: 0, context: null};
+let selectedResultIndex = -1;
+let previewToken = 0;
 
 function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  return String(value ?? '').replace(/[&<>"'\/]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#47;'}[char] || char));
 }
 function escapeRegex(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function slackTsToPath(ts) { return String(ts || '').replace(/[^0-9]/g, ''); }
+function slackMessageUrl(channelId, ts, threadTs = '') {
+  const channel = String(channelId || '').toUpperCase();
+  const messageTs = String(ts || '').trim();
+  if (!channel || !messageTs) return '';
+  const base = `${SLACK_WORKSPACE_URL}/archives/${encodeURIComponent(channel)}/p${slackTsToPath(messageTs)}`;
+  const thread = String(threadTs || '').trim();
+  return thread && thread !== messageTs ? `${base}?thread_ts=${encodeURIComponent(thread)}&cid=${encodeURIComponent(channel)}` : base;
+}
+function slackChannelUrl(channelId) {
+  const channel = String(channelId || '').trim().toUpperCase();
+  return /^[A-Z][A-Z0-9]+$/.test(channel) ? `${SLACK_WORKSPACE_URL}/archives/${encodeURIComponent(channel)}` : '';
+}
+function safeExternalUrl(url) {
+  try {
+    const parsed = new URL(String(url || ''));
+    return parsed.protocol === 'https:' ? parsed.toString() : '';
+  } catch { return ''; }
+}
+function safeTextLinkUrl(url) {
+  try {
+    const parsed = new URL(String(url || '').trim());
+    return ['http:', 'https:', 'mailto:'].includes(parsed.protocol) ? parsed.toString() : '';
+  } catch { return ''; }
+}
+function textLinkAttrs(url) {
+  const safeUrl = safeTextLinkUrl(url);
+  if (!safeUrl) return '';
+  const externalAttrs = /^https?:/i.test(safeUrl) ? ' target="_blank" rel="noopener noreferrer"' : '';
+  return `href="${escapeHtml(safeUrl)}"${externalAttrs}`;
+}
+function splitTrailingUrlPunctuation(url) {
+  const match = String(url || '').match(/^(.*?)([),.;:!?]+)?$/);
+  if (!match) return {url: String(url || ''), trailing: ''};
+  let candidate = match[1] || '';
+  let trailing = match[2] || '';
+  while (candidate.endsWith(')') && (candidate.match(/\(/g) || []).length < (candidate.match(/\)/g) || []).length) {
+    candidate = candidate.slice(0, -1);
+    trailing = `)${trailing}`;
+  }
+  return {url: candidate, trailing};
+}
+function decodeSlackEntities(value) {
+  return String(value || '').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+}
+function normalizeSlackTextSegment(value) {
+  return decodeSlackEntities(value)
+    .replace(/<@([A-Z0-9]+)>/g, '@$1')
+    .replace(/<#([A-Z0-9]+)\|([^>]+)>/g, '#$2')
+    .replace(/<#([A-Z0-9]+)\|?>/g, '#$1')
+    .replace(/<!subteam\^([A-Z0-9]+)(?:\|([^>]+))?>/g, (_match, id, label) => `@${label || id}`);
+}
+function renderPlainTextWithBareLinks(value, {slack = true} = {}) {
+  const text = slack ? normalizeSlackTextSegment(value) : decodeSlackEntities(value);
+  const urlPattern = /(?:https?:\/\/|mailto:)[^\s<>"']+/gi;
+  let html = '';
+  let index = 0;
+  for (const match of text.matchAll(urlPattern)) {
+    const start = match.index || 0;
+    const rawUrl = match[0];
+    const {url, trailing} = splitTrailingUrlPunctuation(rawUrl);
+    const attrs = textLinkAttrs(url);
+    html += highlight(text.slice(index, start));
+    html += attrs ? `<a class="text-link" ${attrs}>${highlight(url)}</a>` : highlight(url);
+    html += highlight(trailing);
+    index = start + rawUrl.length;
+  }
+  html += highlight(text.slice(index));
+  return html;
+}
+function externalLinksHtml(result) {
+  const links = Array.isArray(result?.meta?.slackLinks) ? result.meta.slackLinks : [];
+  const seen = new Set();
+  const html = links.map((link) => {
+    const url = safeExternalUrl(link.url);
+    if (!url || seen.has(url)) return '';
+    seen.add(url);
+    return `<a class="external-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${sourceIconHtml('chunks')}<span>${escapeHtml(link.label || 'Open in Slack')}</span><span aria-hidden="true">↗</span></a>`;
+  }).filter(Boolean).join('');
+  return html ? `<div class="external-links">${html}</div>` : '';
+}
 function selectedCollections() {
-  const values = [...document.querySelectorAll('input[name="collection"]:checked')].map((input) => input.value);
+  const values = selectedCollectionValues();
   return values.length ? values.join(',') : 'chunks';
 }
+function setCollections(values) {
+  const wanted = new Set(values);
+  document.querySelectorAll('input[name="collection"]').forEach((input) => { input.checked = wanted.has(input.value); });
+  renderActiveFilters();
+}
 function normalizeFacet(value) { return String(value || '').trim().replace(/^#/, '').toLowerCase(); }
+function normalizeSlackId(value) { return String(value || '').trim().replace(/^[@#]/, '').toUpperCase(); }
 function quoteDecoratorValue(value) { return /\s/.test(String(value)) ? `"${String(value).replaceAll('"', '\\"')}"` : String(value); }
+function relativeTimeLabel(value) {
+  return ({'last-week': 'Last week', 'last-month': 'Last month', 'last-year': 'Last year'})[value] || '';
+}
+function facetFields(item, type) {
+  return type === 'channel'
+    ? [item.name, item.id]
+    : [item.name, item.id, item.realName, item.slackName];
+}
+function resolveFacet(type, value) {
+  const normalized = normalizeFacet(value);
+  if (!normalized) return null;
+  const slackId = normalizeSlackId(value);
+  const source = type === 'user' ? facetState.users : facetState.channels;
+  return source.find((item) => {
+    const fields = facetFields(item, type).map(normalizeFacet).filter(Boolean);
+    const ids = [item.id].map(normalizeSlackId).filter(Boolean);
+    return fields.includes(normalized) || ids.includes(slackId);
+  }) || null;
+}
+function findUserFacet(value) { return resolveFacet('user', value); }
+function findChannelFacet(value) { return resolveFacet('channel', value); }
+function userFilterValue(user, fallback = '') { return user?.name || user?.realName || user?.slackName || fallback; }
+function userDisplayName(user, fallback = '') { return user?.slackName ? `@${user.slackName}` : (user?.name || user?.realName || (fallback ? `@${fallback}` : '@unknown')); }
+function channelFilterValue(channel, fallback = '') { return channel?.name || String(fallback || '').replace(/^#/, ''); }
+function channelDisplayName(channel, fallback = '') { return channel?.name || String(fallback || '').replace(/^#/, ''); }
+function slackChannelNameForResult(result) {
+  const meta = result?.meta || {};
+  const facet = findChannelFacet(meta.channelId || meta.channel);
+  return channelDisplayName(facet, meta.channel || meta.channelId || '');
+}
+function queryDecorators() {
+  const decorators = [];
+  String($('#query').value || '').replace(/(^|\s)(from|user|in|channel):("[^"]+"|'[^']+'|[^\s]+)/gi, (_match, _prefix, key, rawValue) => {
+    const type = /^(from|user)$/i.test(key) ? 'user' : 'channel';
+    const value = rawValue.trim().replace(/^['"]|['"]$/g, '').replace(/^#/, '');
+    const resolved = resolveFacet(type, value);
+    if (value) decorators.push({key: key.toLowerCase(), type, value, resolved});
+    return '';
+  });
+  return decorators;
+}
+function removeQueryDecorator(type, value) {
+  const wanted = normalizeFacet(value);
+  $('#query').value = String($('#query').value || '').replace(/(^|\s)(from|user|in|channel):("[^"]+"|'[^']+'|[^\s]+)/gi, (match, prefix, key, rawValue) => {
+    const decoratorType = /^(from|user)$/i.test(key) ? 'user' : 'channel';
+    const decoratorValue = rawValue.trim().replace(/^['"]|['"]$/g, '').replace(/^#/, '');
+    return decoratorType === type && normalizeFacet(decoratorValue) === wanted ? (prefix || ' ') : match;
+  }).replace(/\s+/g, ' ').trim();
+}
+function filterValues() {
+  return {
+    channel: $('#channel').value.trim(),
+    user: $('#user').value.trim(),
+    dateFrom: $('#dateFrom').value.trim(),
+    dateTo: $('#dateTo').value.trim(),
+    relativeTime: $('#relativeTime').value,
+    within: $('#within').value.trim(),
+  };
+}
+function userAliasesForValue(value) {
+  const normalized = normalizeFacet(String(value || '').replace(/^@/, ''));
+  if (!normalized) return new Set();
+  const resolved = findUserFacet(value);
+  return new Set([normalized, ...facetFields(resolved || {}, 'user').map((field) => normalizeFacet(String(field || '').replace(/^@/, ''))).filter(Boolean)]);
+}
+function activeUserFilterValue() {
+  const explicit = filterValues().user;
+  if (explicit) return explicit;
+  return queryDecorators().find((decorator) => decorator.type === 'user')?.value || '';
+}
+function activeUserAliases() { return userAliasesForValue(activeUserFilterValue()); }
+function filterSlackMessagesByActiveUser(messages) {
+  const aliases = activeUserAliases();
+  if (!aliases.size) return messages;
+  return messages.filter((message) => aliases.has(normalizeFacet(String(message.speaker || '').replace(/^@/, ''))));
+}
+function collectionLabel(value) {
+  return ({chunks: 'Slack messages', conversations: 'Conversations', conversation: 'Conversations', wiki: 'Wiki', transcripts: 'Transcripts', huddles: 'Transcripts', standups: 'Transcripts', meetings: 'Transcripts', raw: 'Raw exports', all: 'All sources'})[value] || value;
+}
+function collectionChipLabel(value) {
+  return ({chunks: 'Slack', conversations: 'Conversations', conversation: 'Conversations', wiki: 'Wiki', transcripts: 'Transcripts', raw: 'Raw'})[value] || collectionLabel(value);
+}
+function selectedCollectionValues() {
+  return [...document.querySelectorAll('input[name="collection"]:checked')].map((input) => input.value);
+}
+function sourceSummaryText(values = selectedCollectionValues()) {
+  if (!values.length) return 'None selected';
+  if (values.length === 1) return collectionChipLabel(values[0]);
+  return `${values.length} selected`;
+}
+function sourceNamesText(values = selectedCollectionValues()) {
+  return values.map(collectionChipLabel).join(', ');
+}
+function updateSourceSummary() {
+  const summary = $('#sourceSummary');
+  if (summary) summary.textContent = sourceSummaryText();
+}
+function appliedMoreFilterCount() {
+  const values = filterValues();
+  return ['channel', 'user', 'dateFrom', 'dateTo', 'within'].filter((field) => values[field]).length;
+}
+function updateMoreFilterCount() {
+  const count = appliedMoreFilterCount();
+  const badge = $('#moreFilterCount');
+  if (!badge) return;
+  badge.textContent = String(count);
+  badge.classList.toggle('is-empty', count === 0);
+}
+function sourceKind(result) {
+  const kind = String(result?.meta?.kind || '').toLowerCase();
+  const corpus = normalizeFacet(result?.meta?.corpus || '');
+  return kind || (corpus.includes('transcript') ? 'transcripts' : corpus.includes('raw') ? 'raw' : corpus.includes('conversation') ? 'conversations' : corpus.includes('chunk') || corpus.includes('slack') ? 'chunks' : corpus.includes('wiki') ? 'wiki' : corpus.includes('doc') ? 'docs' : 'other');
+}
+function corpusClass(result) { return `corpus-${sourceKind(result)}`; }
+function formatScore(score) {
+  if (score === undefined || score === null || score === '') return '';
+  const numeric = Number(score);
+  return Number.isFinite(numeric) ? numeric.toFixed(3) : String(score);
+}
+function searchText(result) {
+  return `${result.title || ''}\n${result.file || result.path || ''}\n${result.snippet || ''}\n${result.text || ''}\n${result.context || ''}`.toLowerCase();
+}
+function uniqueTerms(terms) {
+  return terms.filter((term, index, array) => array.findIndex((other) => other.toLowerCase() === term.toLowerCase()) === index);
+}
+function matchedHighlightTerms(result) {
+  const haystack = searchText(result);
+  return uniqueTerms(highlightTerms).filter((term) => haystack.includes(term.toLowerCase())).slice(0, 8);
+}
 function currentSuggestContext() {
   const input = $('#query');
   const cursor = input.selectionStart || 0;
   const before = input.value.slice(0, cursor);
-  const match = before.match(/(^|\s)(from|user|in|channel):("([^"]*)|'([^']*)|([^\s"]*))$/i);
+  const match = before.match(/(^|\s)(from|user|in|channel):(?:"([^"]*)"?|'([^']*)'?|([^\s"']*))$/i);
   if (!match) return null;
   const key = match[2].toLowerCase();
   const type = key === 'from' || key === 'user' ? 'user' : 'channel';
-  const typed = (match[4] ?? match[5] ?? match[6] ?? '').trim();
+  const typed = (match[3] ?? match[4] ?? match[5] ?? '').trim();
   return {key, type, typed, start: before.length - match[0].length + (match[1] || '').length, end: cursor};
 }
 function facetSuggestionText(item, type) {
@@ -191,7 +1026,7 @@ function renderQuerySuggest() {
   }
   box.hidden = false;
   box.innerHTML = items.map((item, index) => {
-    const label = context.type === 'channel' ? '#' + item.name : item.name;
+    const label = facetSuggestionText(item, context.type);
     const sub = context.type === 'channel'
       ? [item.id, item.count ? `${item.count} docs/messages` : ''].filter(Boolean).join(' · ')
       : [item.realName && normalizeFacet(item.realName) !== normalizeFacet(item.name) ? item.realName : '', item.slackName ? '@' + item.slackName : '', item.id, item.count ? `${item.count} messages` : ''].filter(Boolean).join(' · ');
@@ -215,13 +1050,15 @@ function applyQuerySuggestion(index = suggestState.active) {
   input.setSelectionRange(cursor, cursor);
   $('#querySuggest').hidden = true;
   input.focus();
+  renderActiveFilters();
   return true;
 }
 function buildParams() {
   const params = new URLSearchParams({q: $('#query').value, mode: $('#mode').value, n: $('#limit').value, sort: $('#sort').value, collection: selectedCollections()});
-  for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within']) {
-    const value = $('#' + id).value.trim();
-    if (value) params.set(id, value);
+  for (const [key, value] of Object.entries(filterValues())) {
+    if (!value) continue;
+    if (key === 'relativeTime') params.set('relative', value);
+    else params.set(key, value);
   }
   return params;
 }
@@ -231,7 +1068,8 @@ function setStatus(message, kind = '') {
 }
 function buildHighlightTerms() {
   const stop = new Set(['and','or','the','for','with','from','that','this','what','when','where','how','why','user','channel','after','before','corpus','mode','sort']);
-  return [$('#query').value, $('#channel').value, $('#user').value, $('#within').value]
+  const values = filterValues();
+  return [$('#query').value, values.channel, values.user, values.within]
     .join(' ')
     .replace(/(^|\s)(from|user|in|channel|after|before|on|corpus|mode|sort):("[^"]+"|'[^']+'|[^\s]+)/gi, ' ')
     .split(/\s+/)
@@ -244,35 +1082,447 @@ function buildHighlightTerms() {
 function highlight(value) {
   const html = escapeHtml(value || '');
   if (!highlightTerms.length) return html;
-  const pattern = highlightTerms.map((term) => escapeRegex(term)).join('|');
+  const pattern = uniqueTerms(highlightTerms).map((term) => escapeRegex(term)).join('|');
   return pattern ? html.replace(new RegExp(`(${pattern})`, 'gi'), '<mark>$1</mark>') : html;
 }
-function resultBadges(result, index) {
-  const meta = result.meta || {};
-  const score = typeof result.score === 'number' ? result.score.toFixed(3) : result.score;
-  return [
-    `#${index + 1}`,
-    meta.corpus || result.backend || 'result',
-    meta.channel || '',
-    meta.date || '',
-    score !== undefined && score !== '' ? `score ${score}` : '',
-  ].filter(Boolean).map((badge) => `<span class="badge">${highlight(badge)}</span>`).join('');
+function entityDataAttrs(attrs) {
+  return Object.entries(attrs)
+    .filter(([, value]) => value !== undefined && value !== null && String(value) !== '')
+    .map(([key, value]) => ` data-${key}="${escapeHtml(value)}"`)
+    .join('');
 }
-function resultHtml(result, index) {
-  const file = result.file || result.path || result.id || '';
+function userChipHtml(user, fallbackId) {
+  if (!user) return highlight(fallbackId ? `@${fallbackId}` : '');
+  const id = user.id || fallbackId || '';
+  const value = userFilterValue(user, fallbackId);
+  const label = userDisplayName(user, fallbackId);
+  const title = [user.realName && user.realName !== label ? user.realName : '', id].filter(Boolean).join(' · ');
+  return `<span class="entity-ref"><button type="button" class="entity-chip entity-chip-user"${entityDataAttrs({'entity-type': 'user', 'entity-id': id, 'entity-value': value})} title="${escapeHtml(title || `Filter by ${label}`)}" aria-label="Filter by user ${escapeHtml(value)}">${escapeHtml(label)}</button></span>`;
+}
+function channelChipHtml(channel, fallbackName = '', fallbackId = '') {
+  const id = channel?.id || fallbackId || '';
+  const value = channelFilterValue(channel, fallbackName || fallbackId);
+  const label = `#${channelDisplayName(channel, fallbackName || fallbackId)}`;
+  const url = slackChannelUrl(id);
+  const link = url ? `<a class="entity-link" data-entity-type="channel" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(label)} in Slack" aria-label="Open ${escapeHtml(label)} in Slack">↗</a>` : '';
+  return `<span class="entity-ref"><button type="button" class="entity-chip entity-chip-channel"${entityDataAttrs({'entity-type': 'channel', 'entity-id': id, 'entity-value': value})} title="${escapeHtml(id ? `${label} · ${id}` : `Filter by ${label}`)}" aria-label="Filter by channel ${escapeHtml(value)}">${escapeHtml(label)}</button>${link}</span>`;
+}
+function renderSlackInlineText(value) {
+  const text = String(value || '');
+  const tokenPattern = /<((?:https?|mailto):[^>|]+)(?:\|([^>]*))?>|<@([A-Z0-9]+)>|<#([A-Z0-9]+)(?:\|([^>]*))?>/gi;
+  let html = '';
+  let cursor = 0;
+  for (const match of text.matchAll(tokenPattern)) {
+    const start = match.index || 0;
+    html += renderPlainTextWithBareLinks(text.slice(cursor, start), {slack: true});
+    if (match[1]) {
+      const rawUrl = decodeSlackEntities(match[1]);
+      const label = match[2] === undefined ? rawUrl : normalizeSlackTextSegment(match[2]);
+      const attrs = textLinkAttrs(rawUrl);
+      html += attrs ? `<a class="text-link" ${attrs}>${highlight(label || rawUrl)}</a>` : highlight(label || rawUrl);
+    } else if (match[3]) {
+      const user = findUserFacet(match[3]);
+      html += user ? userChipHtml(user, match[3]) : highlight(`@${match[3]}`);
+    } else {
+      const channelId = match[4];
+      const tokenName = (match[5] || '').trim();
+      const channel = findChannelFacet(channelId) || (tokenName ? findChannelFacet(tokenName) : null);
+      html += channelChipHtml(channel, tokenName || channelId, channelId);
+    }
+    cursor = start + match[0].length;
+  }
+  html += renderPlainTextWithBareLinks(text.slice(cursor), {slack: true});
+  return html;
+}
+function renderRichText(value, {slack = true} = {}) {
+  return slack ? renderSlackInlineText(value) : renderPlainTextWithBareLinks(value, {slack: false});
+}
+function richSnippetHtml(result, value) {
+  const kind = sourceKind(result);
+  return (kind === 'chunks' || kind === 'conversations' || kind === 'raw') ? renderRichText(value, {slack: true}) : renderRichText(value, {slack: false});
+}
+function citationFor(result) {
+  const parts = [];
   const snippet = result.snippet || result.text || '';
-  return `<article class="panel result" data-index="${index}">
-    <div class="badges">${resultBadges(result, index)}</div>
-    <h2>${highlight(result.title || file || 'Untitled')}</h2>
-    <div class="path">${highlight(file)}</div>
-    <pre>${highlight(snippet || 'No snippet returned.')}</pre>
-    <div class="actions">
-      ${file ? '<button type="button" data-action="open">Open source</button><button type="button" data-action="copy-uri">Copy URI</button>' : ''}
-      <button type="button" data-action="copy-snippet">Copy snippet</button>
-      <button type="button" data-action="copy-citation">Copy citation</button>
-      <button type="button" data-action="json">JSON</button>
+  if (snippet) parts.push(`> ${snippet}`);
+  parts.push(`Source: ${result.file || result.path || ''}`);
+  if (result.docid) parts.push(`DocID: ${result.docid}`);
+  return parts.join('\n\n');
+}
+function activeFilterChips() {
+  const chips = [];
+  const values = filterValues();
+  for (const decorator of queryDecorators()) {
+    const resolved = decorator.resolved;
+    const name = decorator.type === 'channel'
+      ? channelDisplayName(resolved, decorator.value)
+      : (resolved?.name || resolved?.realName || decorator.value);
+    chips.push({field: 'queryDecorator', type: decorator.type, value: decorator.value, label: `${decorator.type === 'channel' ? 'Channel' : 'User'}: ${decorator.type === 'channel' ? '#' : ''}${name}`});
+  }
+  if (values.channel) chips.push({field: 'channel', label: `Channel: ${values.channel}`});
+  if (values.user) chips.push({field: 'user', label: `User: ${values.user}`});
+  if (values.relativeTime) chips.push({field: 'relativeTime', label: relativeTimeLabel(values.relativeTime)});
+  if (values.dateFrom) chips.push({field: 'dateFrom', label: `After: ${values.dateFrom}`});
+  if (values.dateTo) chips.push({field: 'dateTo', label: `Before: ${values.dateTo}`});
+  if (values.within) chips.push({field: 'within', label: `Within: ${values.within}`});
+  const sources = selectedCollectionValues();
+  if (sources.length) chips.push({field: 'collections', label: `Sources: ${sourceNamesText(sources)}`});
+  return chips;
+}
+function renderActiveFilters() {
+  updateSourceSummary();
+  updateMoreFilterCount();
+  const chips = activeFilterChips();
+  const html = chips.map((chip) => `<button type="button" class="chip" data-chip-field="${escapeHtml(chip.field)}"${chip.type ? ` data-chip-type="${escapeHtml(chip.type)}"` : ''}${chip.value ? ` data-chip-value="${escapeHtml(chip.value)}"` : ''}><span>${escapeHtml(chip.label)}</span><span class="chip-x">×</span></button>`).join('');
+  const clear = chips.length ? '<button id="clearFiltersButton" type="button" class="chip clear-all" data-chip-action="clear-all">Clear all</button>' : '<span class="subtle tiny">No active filters.</span>';
+  $('#activeFilters').innerHTML = html ? `${html}${clear}` : clear;
+}
+function sourceIconHtml(kind) {
+  if (kind !== 'chunks' && kind !== 'conversations') return '';
+  return `<svg class="source-icon slack" viewBox="0 0 122.8 122.8" aria-hidden="true" focusable="false">
+    <path fill="#e01e5a" d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z"/>
+    <path fill="#36c5f0" d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z"/>
+    <path fill="#2eb67d" d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9S64.7 52.3 64.7 45.2V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z"/>
+    <path fill="#ecb22e" d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z"/>
+  </svg>`;
+}
+function badgeHtml(badge) {
+  return `<span class="badge ${badge.cls}">${badge.html || highlight(badge.label)}</span>`;
+}
+function sourceLabelHtml(kind, label) {
+  const icon = sourceIconHtml(kind);
+  return icon ? `<span class="source-mark">${icon}<span>${escapeHtml(label)}</span></span>` : escapeHtml(label);
+}
+function resultBadges(result, index, {technical = false} = {}) {
+  const meta = result.meta || {};
+  const score = formatScore(result.score);
+  const matchCount = matchedHighlightTerms(result).length;
+  if ((sourceKind(result) === 'chunks' || sourceKind(result) === 'conversations') && !technical) {
+    return [
+      {html: sourceLabelHtml(sourceKind(result), sourceKind(result) === 'conversations' ? 'Conversations' : 'Slack'), cls: `${corpusClass(result)} source-mark`},
+      meta.date ? {label: meta.date, cls: ''} : null,
+      matchCount ? {label: `${matchCount} match${matchCount === 1 ? '' : 'es'}`, cls: 'match'} : null,
+    ].filter(Boolean).map(badgeHtml).join('');
+  }
+  return [
+    technical ? {label: `#${index + 1}`, cls: ''} : null,
+    (sourceKind(result) === 'chunks' || sourceKind(result) === 'conversations') ? {html: sourceLabelHtml('chunks', technical ? (meta.corpus || 'Slack') : (sourceKind(result) === 'conversations' ? 'Conversations' : 'Messages')), cls: `${corpusClass(result)} source-mark`} : {label: meta.corpus || result.backend || 'result', cls: corpusClass(result)},
+    meta.transcriptKind ? {label: meta.transcriptKind, cls: 'corpus-transcripts'} : null,
+    meta.transcriptWith ? {label: `with ${meta.transcriptWith}`, cls: ''} : null,
+    meta.transcriptTeam ? {label: meta.transcriptTeam, cls: ''} : null,
+    meta.channel && !meta.transcript ? {label: `#${slackChannelNameForResult(result) || meta.channel}`, cls: ''} : null,
+    meta.date ? {label: meta.date, cls: ''} : null,
+    technical && score ? {label: `score ${score}`, cls: 'score'} : null,
+    matchCount ? {label: `${matchCount} match${matchCount === 1 ? '' : 'es'}`, cls: 'match'} : null,
+  ].filter(Boolean).map(badgeHtml).join('');
+}
+function resultTitle(result) {
+  if (sourceKind(result) === 'chunks' || sourceKind(result) === 'conversations') {
+    const channel = slackChannelNameForResult(result);
+    return channel ? `Thread in #${channel}` : 'Thread';
+  }
+  return result.title || result.meta?.transcriptLabel || result.file || result.path || 'Untitled';
+}
+function resultContext(result) {
+  const meta = result.meta || {};
+  const kind = sourceKind(result);
+  if (kind === 'chunks') return '';
+  const bits = [];
+  if (meta.transcriptKind) bits.push(meta.transcriptKind === 'standup' ? 'Standup transcript' : 'Huddle transcript');
+  else if (meta.corpus) bits.push(meta.corpus);
+  if (meta.transcriptWith) bits.push(`with ${meta.transcriptWith}`);
+  if (meta.transcriptTeam) bits.push(meta.transcriptTeam);
+  if (meta.channel && !meta.transcript) bits.push(`#${slackChannelNameForResult(result) || meta.channel}`);
+  if (meta.date) bits.push(meta.date);
+  return bits.map((bit) => `<span>${highlight(bit)}</span>`).join('<span class="dot">•</span>');
+}
+function transcriptMetaHtml(result) {
+  const meta = result.meta || {};
+  if (!meta.transcript) return '';
+  const who = meta.transcriptWith || meta.transcriptTeam || '';
+  return `<div class="transcript-card" aria-label="Transcript metadata">
+    <div><div class="label">Kind</div><strong>${escapeHtml(meta.transcriptKind || 'transcript')}</strong></div>
+    <div><div class="label">${meta.transcriptKind === 'standup' ? 'Team' : 'With'}</div><strong>${escapeHtml(who || 'Unknown')}</strong></div>
+    <div><div class="label">Date</div><strong>${escapeHtml(meta.date || 'Unknown')}</strong></div>
+    <div><div class="label">Collection</div><strong>Huddle transcripts</strong></div>
+  </div>`;
+}
+function frontmatterValue(body, key) {
+  const match = String(body || '').match(new RegExp(`^${key}:\\s*\"?([^\\n\"]+)\"?`, 'm'));
+  return match ? match[1].trim() : '';
+}
+function renderTranscriptBody(body, fallback) {
+  const text = String(body || fallback || '');
+  const withoutFrontmatter = text.replace(/^Folder Context:[\s\S]*?---\s*/m, '').replace(/^---[\s\S]*?---\s*/m, '');
+  const lines = withoutFrontmatter.split(/\r?\n/);
+  const turns = [];
+  for (const line of lines) {
+    const match = line.match(/^([^\n:[\]]{2,80}) \[(\d+:\d{2})\]:\s*(.+)$/);
+    if (match) turns.push({speaker: match[1].trim(), time: match[2], text: match[3].trim()});
+  }
+  if (!turns.length) return `<pre class="preview-source transcript-fallback">${renderRichText(text || 'No preview available.', {slack: false})}</pre>`;
+  return `<div class="transcript-lines">${turns.slice(0, 140).map((turn) => `<div class="transcript-line"><div><div class="speaker">${highlight(turn.speaker)}</div><div class="time">${escapeHtml(turn.time)}</div></div><div class="utterance">${renderRichText(turn.text, {slack: false})}</div></div>`).join('')}</div>${turns.length > 140 ? `<div class="subtle tiny">Showing first 140 transcript turns. Open source for the full transcript.</div>` : ''}`;
+}
+function stripQmdLinePrefix(line) {
+  return String(line || '').replace(/^\s*\d+:\s?/, '').trimEnd();
+}
+function cleanSlackText(value, {entityMode = 'text', preserveLinks = false} = {}) {
+  // When preserving Slack links, keep &lt;/&gt; encoded until renderSlackInlineText
+  // parses the link token. Decoding first can split labels containing escaped HTML.
+  let text = (preserveLinks ? String(value || '') : decodeSlackEntities(value))
+    .replace(/<!subteam\^([A-Z0-9]+)(?:\|([^>]+))?>/g, (_match, id, label) => label ? `@${label}` : `@${id}`);
+  if (entityMode !== 'preserve') {
+    text = text
+      .replace(/<@([A-Z0-9]+)>/g, '@$1')
+      .replace(/<#([A-Z0-9]+)\|([^>]+)>/g, '#$2')
+      .replace(/<#([A-Z0-9]+)\|?>/g, '#$1');
+  }
+  if (!preserveLinks) {
+    text = text
+      .replace(/<((?:https?|mailto):[^>|]+)\|([^>]+)>/g, '$2')
+      .replace(/<((?:https?|mailto):[^>]+)>/g, '$1');
+  }
+  return text.trim();
+}
+function parseSlackMessages(markdown, {limit = 80} = {}) {
+  const lines = String(markdown || '').split(/\r?\n/).map(stripQmdLinePrefix);
+  const headerText = lines.join('\n');
+  const channelId = frontmatterValue(headerText, 'channel_id');
+  const messages = [];
+  let current = null;
+  const headerPattern = /^##\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?\+00:00)\s+\|\s+([^|]+?)\s+\|\s+ts=(\d+\.\d+)\s+thread_ts=([^\s]*)/;
+  for (const line of lines) {
+    const header = line.match(headerPattern);
+    if (header) {
+      if (current && current.text.trim()) messages.push(current);
+      const threadTs = header[4] || '';
+      current = {time: header[1], speaker: header[2].trim(), ts: header[3], threadTs, link: slackMessageUrl(channelId, header[3], threadTs), text: ''};
+      continue;
+    }
+    if (!current) continue;
+    if (!line.trim()) {
+      if (current.text.trim()) current.text += '\n';
+      continue;
+    }
+    if (/^@@|^---$|^#\s+Slack chunk|^Source JSON:|^(source|kind|channel_id|channel_name|thread_ts|page|fetched_at|message_count|source_json):/i.test(line.trim())) continue;
+    current.text += (current.text && !current.text.endsWith('\n') ? '\n' : '') + cleanSlackText(line.trim(), {entityMode: 'preserve', preserveLinks: true});
+  }
+  if (current && current.text.trim()) messages.push(current);
+  return messages.slice(0, limit);
+}
+function formatSlackTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+}
+function slackSnippet(result) {
+  const messages = filterSlackMessagesByActiveUser(parseSlackMessages(result.snippet || result.text || '', {limit: 80})).slice(0, 4);
+  if (messages.length) return messages.map((message) => `${message.speaker}: ${message.text.replace(/\s+/g, ' ').slice(0, 260)}`).join('\n');
+  return '';
+}
+function speakerInitials(name) {
+  const cleaned = String(name || '').trim();
+  if (!cleaned) return '?';
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : cleaned.slice(0, 2)).toUpperCase();
+}
+function renderSlackBody(body, fallback) {
+  const allMessages = parseSlackMessages(body || fallback || '', {limit: 500});
+  const userValue = activeUserFilterValue();
+  const messages = filterSlackMessagesByActiveUser(allMessages).slice(0, 120);
+  if (!messages.length && userValue && allMessages.length) return `<div class="preview-empty">No messages from ${escapeHtml(userValue)} were found in this preview.</div>`;
+  if (!messages.length) return `<pre class="preview-source">${renderRichText(body || fallback || 'No preview available.')}</pre>`;
+  const userNote = userValue ? `<div class="subtle tiny">Showing messages sent by ${escapeHtml(userValue)} only.</div>` : '';
+  return `${userNote}<div class="chat-lines">${messages.map((message) => { const time = escapeHtml(formatSlackTime(message.time)); const timeHtml = message.link ? `<a class="time slack-time-link" href="${escapeHtml(message.link)}" target="_blank" rel="noopener noreferrer" title="Open this message in Slack">${time} ↗</a>` : `<div class="time">${time}</div>`; return `<div class="chat-message"><div class="chat-avatar" aria-hidden="true">${escapeHtml(speakerInitials(message.speaker))}</div><div class="chat-content"><div class="chat-head"><div class="speaker">${highlight(message.speaker)}</div>${timeHtml}</div><div class="message">${renderRichText(message.text)}</div></div></div>`; }).join('')}</div>${messages.length >= 120 ? `<div class="subtle tiny">Showing first 120 matching messages. Open source for the full thread.</div>` : ''}`;
+}
+function conversationTitleSnippet(result) {
+  const title = String(result.title || '').replace(/^#+\s*/, '').trim();
+  if (!title) return '';
+  const cleaned = cleanSlackText(title.replace(/^#[^:]+:\s*/, '').replace(/^Thread in #[^:]+:\s*/, ''));
+  return cleaned.length > 12 ? cleaned : title;
+}
+function genericSnippetLines(result) {
+  const raw = String(result.snippet || result.text || '');
+  const preserveEntities = ['chunks', 'conversations', 'raw'].includes(sourceKind(result));
+  return raw.split(/\r?\n/)
+    .map((line) => cleanSlackText(line.replace(/^\s*\d+:\s?/, '').trim(), {entityMode: preserveEntities ? 'preserve' : 'text', preserveLinks: preserveEntities}))
+    .filter(Boolean)
+    .filter((line) => !/^@@|^---$|^Folder Context:|^Source pages:?$|^- `?chunks\/|^(generated_at|run_id|source|source_file|source_folder|source_path|source_root|source_sha256|source_pages|transcript_file|transcript_kind|type|title|canvas|duration|date|channel_id|channel_name|chunk_kind|priority_hint|message_count|start_time|start_ts|end_time|end_ts|thread_ts):/i.test(line));
+}
+function cleanedSnippet(result) {
+  const lines = genericSnippetLines(result);
+  if (sourceKind(result) === 'chunks') return slackSnippet(result) || lines.slice(0, 5).join('\n') || 'Open the preview for messages.';
+  if (sourceKind(result) === 'conversations') return slackSnippet(result) || lines.slice(0, 5).join('\n') || conversationTitleSnippet(result) || 'Open the preview for messages.';
+  if (sourceKind(result) === 'transcripts') {
+    const spoken = lines.filter((line) => /\[[0-9]+:[0-9]{2}\]:/.test(line));
+    if (spoken.length) return spoken.slice(0, 4).join('\n');
+    return `Transcript ${result.meta?.transcriptKind || 'meeting'}${result.meta?.transcriptWith ? ` with ${result.meta.transcriptWith}` : ''}${result.meta?.transcriptTeam ? ` for ${result.meta.transcriptTeam}` : ''}. Open the preview for speaker turns.`;
+  }
+  return lines.slice(0, 7).join('\n') || String(result.snippet || result.text || '');
+}
+function sourceSummaryCounts() {
+  const counts = new Map();
+  for (const result of lastResults) {
+    const label = (sourceKind(result) === 'chunks' || sourceKind(result) === 'conversations') ? 'Slack' : sourceKind(result) === 'transcripts' ? 'Transcripts' : sourceKind(result) === 'wiki' ? 'Wiki' : sourceKind(result) === 'raw' ? 'Raw' : 'Other';
+    counts.set(label, (counts.get(label) || 0) + 1);
+  }
+  return counts;
+}
+function countByMeta(field) {
+  const counts = new Map();
+  for (const result of lastResults) {
+    const value = String(result?.meta?.[field] || '').trim().replace(/^#/, '');
+    if (!value) continue;
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+function resultFacetEntries(kind) {
+  const serverFacets = lastSearchData?.resultFacets?.[kind];
+  if (Array.isArray(serverFacets)) return serverFacets.map((item) => [item.name, item.count]);
+  return countByMeta(kind === 'users' ? 'user' : 'channel');
+}
+function renderResultTabs() {
+  if (!lastResults.length) { resultTabsEl.innerHTML = ''; if (boardCountsEl) boardCountsEl.textContent = '0 matches'; return; }
+  const total = lastSearchData?.matched || lastSearchData?.returned || lastResults.length;
+  const sourceCounts = sourceSummaryCounts();
+  const channelButtons = resultFacetEntries('channels').slice(0, 8).map(([name, count]) => `<button type="button" class="result-tab" data-result-filter="channel" data-result-value="${escapeHtml(name)}">#${escapeHtml(name)} <strong>${count}</strong></button>`);
+  const userButtons = resultFacetEntries('users').slice(0, 8).map(([name, count]) => `<button type="button" class="result-tab" data-result-filter="user" data-result-value="${escapeHtml(name)}">${escapeHtml(name)} <strong>${count}</strong></button>`);
+  const sourcePills = [...sourceCounts.entries()].map(([label, count]) => {
+    const labelHtml = label === 'Slack' ? sourceLabelHtml('chunks', 'Slack') : escapeHtml(label);
+    return `<span class="result-tab">${labelHtml} <strong>${count}</strong></span>`;
+  });
+  resultTabsEl.innerHTML = [`<span class="result-tab total">${total} found</span>`, ...channelButtons, ...userButtons, ...sourcePills].join('');
+  if (boardCountsEl) boardCountsEl.textContent = `${lastResults.length} match${lastResults.length === 1 ? '' : 'es'}`;
+}
+function resultsMetaText() {
+  if (!lastSearchData) return 'Run a search to see ranked matches.';
+  const returned = lastSearchData.returned || 0;
+  const matched = lastSearchData.matched || returned;
+  return `${returned} shown from ${matched} found; use result chips to narrow by channel or user.`;
+}
+function resultCardHtml(result, index) {
+  const file = result.file || result.path || result.id || '';
+  const snippet = cleanedSnippet(result);
+  const selected = index === selectedResultIndex ? ' selected' : '';
+  return `<article class="result source-${sourceKind(result)}${selected}" role="button" tabindex="0" aria-selected="${index === selectedResultIndex ? 'true' : 'false'}" data-index="${index}">
+    <div class="result-top">
+      <div class="meta">
+        <h3 class="result-title">${sourceIconHtml(sourceKind(result))}<span>${highlight(resultTitle(result))}</span></h3>
+        ${resultContext(result) ? `<div class="result-context">${resultContext(result)}</div>` : ''}
+      </div>
+      <div class="badges">${resultBadges(result, index)}</div>
     </div>
+    <div class="excerpt">${richSnippetHtml(result, snippet || 'No useful snippet returned yet. Open the preview for the source content.')}</div>
+    ${externalLinksHtml(result)}
+    <details class="result-more">
+      <summary>Actions & details</summary>
+      <div class="result-actions">
+        ${file ? '<button type="button" data-action="open">Open source</button><button type="button" data-action="copy-uri">Copy URI</button>' : ''}
+        <button type="button" data-action="copy-snippet">Copy snippet</button>
+        <button type="button" data-action="copy-citation">Copy citation</button>
+        <button type="button" data-action="json">JSON</button>
+      </div>
+      <div class="result-tech">
+        <div class="badges">${resultBadges(result, index, {technical: true})}</div>
+        <div class="path">${highlight(file)}</div>
+      </div>
+    </details>
   </article>`;
+}
+function renderResults() {
+  resultsEl.innerHTML = lastResults.map(resultCardHtml).join('') || '<p class="subtle">No results. Try fewer filters or a broader query.</p>';
+  renderResultTabs();
+  resultsMetaEl.textContent = resultsMetaText();
+}
+function renderPreview(result, state = {loading: false, body: '', error: ''}) {
+  if (!result) {
+    previewBodyEl.className = 'preview-empty';
+    previewBodyEl.innerHTML = 'Choose a result to preview its source, metadata, and match context.';
+    return;
+  }
+  const meta = result.meta || {};
+  const source = result.file || result.path || result.id || '';
+  const why = buildWhy(result);
+  const snippet = result.snippet || result.text || '';
+  const isTranscript = sourceKind(result) === 'transcripts';
+  const bodyBlock = state.error
+    ? `<div class="preview-empty" style="border-style:solid; border-color: rgba(255,138,138,.34); color:#ffd0d0;">${escapeHtml(state.error)}</div>`
+    : state.loading
+      ? `<div class="preview-empty">Loading source preview from /api/get…</div>`
+      : isTranscript
+        ? renderTranscriptBody(state.body, snippet)
+        : (sourceKind(result) === 'chunks' || sourceKind(result) === 'conversations' || sourceKind(result) === 'raw')
+          ? renderSlackBody(state.body, snippet)
+          : `<pre class="preview-source">${renderRichText(state.body || snippet || 'No preview available.', {slack: false})}</pre>`;
+  previewBodyEl.className = '';
+  previewBodyEl.innerHTML = `
+    <div class="preview-head">
+      <div class="preview-hero">
+        <h2 class="result-title">${sourceIconHtml(sourceKind(result))}<span>${highlight(resultTitle(result))}</span></h2>
+        ${resultContext(result) ? `<div class="result-context">${resultContext(result)}</div>` : `<div class="badges">${resultBadges(result, selectedResultIndex)}</div>`}
+        ${externalLinksHtml(result)}
+      </div>
+    </div>
+    <section class="preview-section content-first">
+      ${bodyBlock}
+    </section>
+    <details class="preview-more">
+      <summary>Why this result?</summary>
+      <ul class="why">${why.map((item) => `<li>${highlight(item)}</li>`).join('')}</ul>
+    </details>
+    <details class="preview-more">
+      <summary>Source, actions & technical details</summary>
+      <div class="tech-grid">
+        <div class="debug-actions">
+          ${source ? '<button type="button" data-preview-action="open-source">Open source</button><button type="button" data-preview-action="copy-uri">Copy URI</button>' : ''}
+          <button type="button" data-preview-action="copy-citation">Copy citation</button>
+          <button type="button" data-preview-action="json">JSON</button>
+        </div>
+        <div class="badges">${resultBadges(result, selectedResultIndex, {technical: true})}</div>
+        ${transcriptMetaHtml(result)}
+        <div class="tech-uri">${highlight(source || 'No source URI')}${result.docid ? ` · ${highlight(result.docid)}` : ''}</div>
+        <div class="preview-snippet">
+          <div class="label">Matched excerpt</div>
+          <div class="excerpt">${richSnippetHtml(result, snippet || 'No snippet returned.')}</div>
+        </div>
+      </div>
+    </details>`;
+}
+function renderPreviewEmpty(message) {
+  previewBodyEl.className = 'preview-empty';
+  previewBodyEl.textContent = message;
+}
+function clearPreview() {
+  previewToken += 1;
+  selectedResultIndex = -1;
+  renderPreview(null);
+}
+function selectResult(index, {loadPreview = true, scroll = false} = {}) {
+  if (index < 0 || index >= lastResults.length) return;
+  selectedResultIndex = index;
+  renderResults();
+  const result = lastResults[index];
+  if (!result) return;
+  if (scroll) previewBodyEl.scrollIntoView({behavior: 'smooth', block: 'start'});
+  if (loadPreview) loadPreviewFor(result);
+}
+async function loadPreviewFor(result) {
+  const token = ++previewToken;
+  renderPreview(result, {loading: true, body: '', error: ''});
+  const source = result.file || result.path || '';
+  if (!source) {
+    if (token === previewToken) renderPreview(result, {loading: false, body: '', error: 'No source URI available for this result.'});
+    return;
+  }
+  try {
+    const response = await fetch(`/api/get?target=${encodeURIComponent(source)}&lines=260`);
+    const body = await response.text();
+    if (token !== previewToken) return;
+    renderPreview(result, response.ok ? {loading: false, body, error: ''} : {loading: false, body: '', error: body || `Preview request failed (${response.status}).`});
+  } catch (error) {
+    if (token === previewToken) renderPreview(result, {loading: false, body: '', error: error.message});
+  }
 }
 async function copyText(value) {
   try {
@@ -282,35 +1532,15 @@ async function copyText(value) {
     setStatus('Clipboard unavailable in this browser; select and copy manually.', 'warn');
   }
 }
-function citationFor(result) { return `> ${result.snippet || result.text || ''}\n\nSource: ${result.file || result.path || ''}`; }
-async function search() {
-  setStatus('Searching…');
-  resultsEl.innerHTML = '';
-  highlightTerms = buildHighlightTerms();
-  try {
-    const response = await fetch(`/api/search?${buildParams()}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'search failed');
-    lastResults = data.results || [];
-    resultsEl.innerHTML = lastResults.map(resultHtml).join('') || '<p class="subtle">No results. Try fewer filters or a broader query.</p>';
-    const elapsed = data.elapsedMs === undefined ? '' : ` in ${(Number(data.elapsedMs) / 1000).toFixed(2)}s`;
-    const cached = data.cacheHit ? ' from cache' : '';
-    const message = `${data.returned || 0} results${cached}; ${data.matched || 0} matched from ${data.fetched || 0} fetched${elapsed}. Backend: ${data.backend || 'qmd'}.`;
-    setStatus(data.warning ? `${message} ${data.warning}` : message, data.warning ? 'warn' : '');
-  } catch (error) {
-    lastResults = [];
-    setStatus(`Error: ${error.message}`, 'bad');
-  }
-}
-async function openResult(result) {
-  const file = result.file || result.path || '';
-  docTitle.textContent = file || 'Result';
+async function openSourceDialog(result) {
+  const source = result.file || result.path || '';
+  docTitle.textContent = resultTitle(result);
   docBody.innerHTML = '<p class="subtle">Loading…</p>';
-  dialog.showModal();
+  if (!dialog.open) dialog.showModal();
   try {
-    const response = await fetch(`/api/get?target=${encodeURIComponent(file)}&lines=220`);
+    const response = await fetch(`/api/get?target=${encodeURIComponent(source)}&lines=260`);
     const body = await response.text();
-    docBody.innerHTML = response.ok ? `<pre>${highlight(body)}</pre>` : `<pre>${escapeHtml(body)}</pre>`;
+    docBody.innerHTML = response.ok ? `<pre>${renderRichText(body)}</pre>` : `<pre>${escapeHtml(body)}</pre>`;
   } catch (error) {
     docBody.innerHTML = `<pre>${escapeHtml(error.message)}</pre>`;
   }
@@ -325,7 +1555,12 @@ async function loadFacets() {
     $('#channelOptions').innerHTML = facetState.channels.slice(0, 300).map((channel) => `<option value="${escapeHtml(channel.name)}">${escapeHtml([channel.id, channel.count ? `${channel.count} matches` : ''].filter(Boolean).join(' · '))}</option>`).join('');
     $('#userOptions').innerHTML = facetState.users.slice(0, 300).map((user) => `<option value="${escapeHtml(user.name)}">${escapeHtml([user.realName, user.slackName ? '@' + user.slackName : '', user.id, user.count ? `${user.count} matches` : ''].filter(Boolean).join(' · '))}</option>`).join('');
     if (statusEl.textContent === 'Ready.') setStatus(`Ready. Loaded ${facetState.users.length} user and ${facetState.channels.length} channel suggestions in ${((performance.now() - started) / 1000).toFixed(2)}s.`);
+    if (lastResults.length) {
+      renderResults();
+      if (selectedResultIndex >= 0) loadPreviewFor(lastResults[selectedResultIndex]);
+    }
     renderQuerySuggest();
+    renderActiveFilters();
   } catch (error) {
     setStatus(`Facet suggestions unavailable: ${error.message}`, 'warn');
   }
@@ -340,12 +1575,91 @@ async function checkHealth() {
     setStatus(`Service check failed: ${error.message}`, 'bad');
   }
 }
-function clearFilters() {
+function clearFilters({collections = true} = {}) {
   for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within']) $('#' + id).value = '';
+  $('#relativeTime').value = '';
+  if (collections) setCollections(DEFAULT_COLLECTIONS);
+  renderActiveFilters();
   setStatus('Filters cleared.');
 }
+function clearSearch() {
+  $('#query').value = '';
+  $('#querySuggest').hidden = true;
+  clearFilters({collections: true});
+  lastResults = [];
+  lastSearchData = null;
+  resultsEl.innerHTML = '';
+  resultsMetaEl.textContent = 'Run a search to see ranked results.';
+  renderResultTabs();
+  renderPreview(null);
+  setStatus('Ready.');
+  $('#query').focus();
+}
+function matchedFilterSummary() {
+  const values = filterValues();
+  const items = [];
+  if (values.channel) items.push(`channel ${values.channel}`);
+  if (values.user) items.push(`user ${values.user}`);
+  if (values.relativeTime) items.push(relativeTimeLabel(values.relativeTime).toLowerCase());
+  if (values.dateFrom) items.push(`after ${values.dateFrom}`);
+  if (values.dateTo) items.push(`before ${values.dateTo}`);
+  if (values.within) items.push(`within ${values.within}`);
+  const collections = [...document.querySelectorAll('input[name="collection"]:checked')].map((input) => collectionLabel(input.value));
+  if (collections.length) items.push(`sources ${collections.join(', ')}`);
+  return items;
+}
+function buildWhy(result) {
+  const reasons = [];
+  const score = formatScore(result.score);
+  if (score) reasons.push(`Score ${score} from ${result.backend || 'qmd'} search.`);
+  const filters = matchedFilterSummary();
+  if (filters.length) reasons.push(`Passed active filters: ${filters.join('; ')}.`);
+  const matchedTerms = matchedHighlightTerms(result);
+  if (matchedTerms.length) reasons.push(`Highlighted terms present here: ${matchedTerms.join(', ')}.`);
+  if (result.meta?.corpus) reasons.push(`Corpus: ${result.meta.corpus}.`);
+  if (result.meta?.transcriptKind) reasons.push(`Transcript kind: ${result.meta.transcriptKind}.`);
+  if (result.meta?.transcriptWith) reasons.push(`Huddle with: ${result.meta.transcriptWith}.`);
+  if (result.meta?.transcriptTeam) reasons.push(`Standup team: ${result.meta.transcriptTeam}.`);
+  if (result.meta?.channel) reasons.push(`Channel metadata: ${result.meta.channel}.`);
+  if (result.meta?.date) reasons.push(`Date metadata: ${result.meta.date}.`);
+  if (lastSearchData?.returned !== undefined) reasons.push(`Search run: ${lastSearchData.returned || 0} returned / ${lastSearchData.matched || 0} matched / ${lastSearchData.fetched || 0} fetched.`);
+  return reasons;
+}
+async function search() {
+  setStatus('Searching…');
+  resultsEl.innerHTML = '';
+  resultsMetaEl.textContent = 'Searching…';
+  lastResults = [];
+  lastSearchData = null;
+  clearPreview();
+  highlightTerms = buildHighlightTerms();
+  renderActiveFilters();
+  try {
+    const response = await fetch(`/api/search?${buildParams()}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'search failed');
+    lastSearchData = data;
+    lastResults = data.results || [];
+    renderResults();
+    renderActiveFilters();
+    if (lastResults.length) selectResult(0, {loadPreview: true});
+    else renderPreviewEmpty('No results. Try fewer filters or a broader query.');
+    const elapsed = data.elapsedMs === undefined ? '' : ` in ${(Number(data.elapsedMs) / 1000).toFixed(2)}s`;
+    const cached = data.cacheHit ? ' from cache' : '';
+    const message = `Search complete${cached}${elapsed}.`;
+    setStatus(data.warning ? `${message} ${data.warning}` : message, data.warning ? 'warn' : '');
+  } catch (error) {
+    lastResults = [];
+    lastSearchData = null;
+    resultsEl.innerHTML = '';
+    resultsMetaEl.textContent = 'Search failed.';
+    renderPreviewEmpty('No preview available after a failed search.');
+    setStatus(`Error: ${error.message}`, 'bad');
+  }
+}
+function clearResultsSelection() { selectedResultIndex = -1; renderResults(); }
 form.addEventListener('submit', (event) => { event.preventDefault(); search(); });
-$('#query').addEventListener('input', renderQuerySuggest);
+$('#query').addEventListener('input', () => { renderQuerySuggest(); renderActiveFilters(); });
 $('#query').addEventListener('click', renderQuerySuggest);
 $('#query').addEventListener('keydown', (event) => {
   const box = $('#querySuggest');
@@ -361,31 +1675,134 @@ $('#querySuggest').addEventListener('mousedown', (event) => {
   event.preventDefault();
   applyQuerySuggestion(Number(button.dataset.suggestIndex));
 });
+function closeSourceMenu() {
+  $('#sourceMenuPopover').hidden = true;
+  $('#sourceMenuButton').setAttribute('aria-expanded', 'false');
+}
+function toggleSourceMenu() {
+  const popover = $('#sourceMenuPopover');
+  const expanded = popover.hidden;
+  popover.hidden = !expanded;
+  $('#sourceMenuButton').setAttribute('aria-expanded', String(expanded));
+}
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.query-box')) $('#querySuggest').hidden = true;
+  if (!event.target.closest('#sourceMenu')) closeSourceMenu();
 });
-$('#clearButton').addEventListener('click', () => { $('#query').value = ''; $('#querySuggest').hidden = true; clearFilters(); resultsEl.innerHTML = ''; lastResults = []; $('#query').focus(); });
-$('#clearFiltersButton').addEventListener('click', clearFilters);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeSourceMenu();
+});
+$('#clearButton').addEventListener('click', clearSearch);
+$('#sourceMenuButton').addEventListener('click', toggleSourceMenu);
+$('#moreFiltersButton').addEventListener('click', () => {
+  const panel = $('#moreFiltersPanel');
+  const expanded = panel.hidden;
+  panel.hidden = !expanded;
+  $('#moreFiltersButton').setAttribute('aria-expanded', String(expanded));
+});
 $('#healthButton').addEventListener('click', checkHealth);
 $('#closeDialog').addEventListener('click', () => dialog.close());
-resultsEl.addEventListener('click', (event) => {
-  const button = event.target.closest('button[data-action]');
-  if (!button) return;
-  const article = event.target.closest('.result');
-  const result = lastResults[Number(article.dataset.index)];
+[...document.querySelectorAll('input[name="collection"]')].forEach((input) => input.addEventListener('change', () => {
+  renderActiveFilters();
+  closeSourceMenu();
+}));
+for (const id of ['channel', 'user', 'dateFrom', 'dateTo', 'within', 'relativeTime']) $('#' + id).addEventListener('input', renderActiveFilters);
+$('#activeFilters').addEventListener('click', (event) => {
+  const chip = event.target.closest('button[data-chip-field], button[data-chip-action]');
+  if (!chip) return;
+  const action = chip.dataset.chipAction;
+  if (action === 'clear-all') return clearFilters({collections: true});
+  const field = chip.dataset.chipField;
+  if (field === 'collections') {
+    setCollections(DEFAULT_COLLECTIONS);
+  } else if (field === 'queryDecorator') {
+    removeQueryDecorator(chip.dataset.chipType, chip.dataset.chipValue);
+  } else if (field && $("#" + field)) {
+    $('#' + field).value = '';
+  }
+  renderActiveFilters();
+});
+function applyEntityFilter(chip) {
+  const type = chip?.dataset?.entityType;
+  const value = String(chip?.dataset?.entityValue || '').trim();
+  if (!type || !value) return;
+  if (type === 'user') {
+    $('#user').value = value;
+    setStatus(`User filter set to ${value}. Run search to apply it.`);
+  } else if (type === 'channel') {
+    $('#channel').value = value;
+    setStatus(`Channel filter set to ${value}. Run search to apply it.`);
+  }
+  renderActiveFilters();
+}
+function handleResultAction(result, action) {
   if (!result) return;
-  const action = button.dataset.action;
-  if (action === 'open') return openResult(result);
+  if (action === 'open') return openSourceDialog(result);
+  if (action === 'open-source') return openSourceDialog(result);
   if (action === 'copy-uri') return copyText(result.file || result.path || '');
   if (action === 'copy-snippet') return copyText(result.snippet || result.text || '');
   if (action === 'copy-citation') return copyText(citationFor(result));
   if (action === 'json') {
     docTitle.textContent = 'Result JSON';
     docBody.innerHTML = `<pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre>`;
-    dialog.showModal();
+    if (!dialog.open) dialog.showModal();
+  }
+}
+resultTabsEl.addEventListener('click', (event) => {
+  const chip = event.target.closest('button[data-result-filter]');
+  if (!chip) return;
+  const field = chip.dataset.resultFilter;
+  const value = chip.dataset.resultValue || '';
+  if (field === 'channel') $('#channel').value = value;
+  if (field === 'user') $('#user').value = value;
+  renderActiveFilters();
+  search();
+});
+resultsEl.addEventListener('click', (event) => {
+  const entityChip = event.target.closest('.entity-chip');
+  if (entityChip) { event.preventDefault(); event.stopPropagation(); applyEntityFilter(entityChip); return; }
+  if (event.target.closest('a')) { event.stopPropagation(); return; }
+  const actionButton = event.target.closest('button[data-action]');
+  if (!actionButton && event.target.closest('.result-more')) {
+    event.stopPropagation();
+    return;
+  }
+  const article = event.target.closest('.result');
+  const result = article ? lastResults[Number(article.dataset.index)] : null;
+  if (actionButton && result) {
+    event.stopPropagation();
+    handleResultAction(result, actionButton.dataset.action);
+    return;
+  }
+  if (!article || !result || actionButton) return;
+  selectResult(Number(article.dataset.index), {loadPreview: true});
+});
+previewBodyEl.addEventListener('click', (event) => {
+  const entityChip = event.target.closest('.entity-chip');
+  if (entityChip) { event.preventDefault(); event.stopPropagation(); applyEntityFilter(entityChip); return; }
+  if (event.target.closest('a.entity-link')) { event.stopPropagation(); return; }
+  const actionButton = event.target.closest('button[data-preview-action]');
+  if (!actionButton) return;
+  const result = lastResults[selectedResultIndex];
+  if (!result) return;
+  handleResultAction(result, actionButton.dataset.previewAction);
+});
+resultsEl.addEventListener('keydown', (event) => {
+  const article = event.target.closest('.result');
+  if (!article) return;
+  if (event.target.closest('a')) return;
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    selectResult(Number(article.dataset.index), {loadPreview: true});
   }
 });
+$('#activeFilters').addEventListener('mousedown', (event) => {
+  const chip = event.target.closest('button[data-chip-field], button[data-chip-action]');
+  if (chip) event.preventDefault();
+});
+renderActiveFilters();
 loadFacets();
+renderPreview(null);
 </script>
 </body>
 </html>
